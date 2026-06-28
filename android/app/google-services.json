@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "554374796089",
+    "project_id": "ponto-eletronico-66dee",
+    "storage_bucket": "ponto-eletronico-66dee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:554374796089:android:eedfe2e6eabb7b3f1b8ee8",
+        "android_client_info": {
+          "package_name": "com.example.ponto_eletronico"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsITZ6EdHnJNIkJOiKLQcL-u_7ktkxSlQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
