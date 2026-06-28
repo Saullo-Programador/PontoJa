@@ -213,15 +213,6 @@ flutter pub get
 flutter run
 ```
 
-### 4. Primeiro acesso
-Na primeira execução (Firestore vazio) o app exibe a tela **Primeiro acesso** para criar a conta do gerente master. Alternativamente use o script `seed.js`:
-
-```bash
-# Coloque serviceAccountKey.json na raiz
-npm install firebase-admin
-node seed.js
-```
-
 ---
 
 ## Testes
