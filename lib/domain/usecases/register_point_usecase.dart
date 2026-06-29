@@ -1,21 +1,25 @@
 import 'package:ponto_eletronico/domain/entities/time_record_entity.dart';
 import 'package:ponto_eletronico/domain/repositories/i_time_record_repository.dart';
+import 'package:ponto_eletronico/domain/usecases/check_location_usecase.dart';
 
 class RegisterPointUsecase {
   final ITimeRecordRepository _repository;
+  final CheckLocationUsecase? _checkLocation; // nullable: pode não ter GPS
 
-  RegisterPointUsecase(this._repository);
+  RegisterPointUsecase(this._repository, [this._checkLocation]);
 
-  /// Avança o ponto para a próxima etapa automaticamente:
-  /// sem registro → entrada
-  /// entrada feita → iniciar intervalo
-  /// em intervalo  → voltar do intervalo
-  /// voltou        → saída
   Future<PunchStep> execute(String userId) async {
+    // ── Verifica localização antes de registrar ──────────────────────────
+    if (_checkLocation != null) {
+      final result = await _checkLocation.execute();
+      if (!result.allowed) {
+        throw LocationPunchException(result.errorMessage ?? 'Localização inválida.');
+      }
+    }
+
     final existing = await _repository.getTodayRecord(userId);
 
     if (existing == null) {
-      // ── Bate entrada ─────────────────────────────────────────────────
       final now = DateTime.now();
       await _repository.registerEntry(TimeRecordEntity(
         userId: userId,
@@ -29,28 +33,31 @@ class RegisterPointUsecase {
 
     switch (existing.nextStep) {
       case PunchStep.breakStart:
-        await _repository.updateRecord(
-          existing.copyWith(breakStart: now),
-        );
+        await _repository.updateRecord(existing.copyWith(breakStart: now));
         return PunchStep.breakEnd;
 
       case PunchStep.breakEnd:
-        await _repository.updateRecord(
-          existing.copyWith(breakEnd: now),
-        );
+        await _repository.updateRecord(existing.copyWith(breakEnd: now));
         return PunchStep.exit;
 
       case PunchStep.exit:
-        await _repository.updateRecord(
-          existing.copyWith(exit: now),
-        );
+        await _repository.updateRecord(existing.copyWith(exit: now));
         return PunchStep.done;
 
       case PunchStep.done:
-        return PunchStep.done; // ponto completo, não faz nada
+        return PunchStep.done;
     }
   }
 
   Future<TimeRecordEntity?> getTodayRecord(String userId) =>
       _repository.getTodayRecord(userId);
+}
+
+/// Lançada quando o funcionário está fora do raio permitido.
+class LocationPunchException implements Exception {
+  final String message;
+  const LocationPunchException(this.message);
+
+  @override
+  String toString() => message;
 }

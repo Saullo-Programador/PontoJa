@@ -3,4 +3,5 @@ abstract class AppRoutes {
   static const login    = '/login';
   static const employee = '/employee';
   static const manager  = '/manager';
+  static const workplace = '/workplace';
 }

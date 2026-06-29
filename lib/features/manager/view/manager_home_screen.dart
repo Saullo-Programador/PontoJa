@@ -44,6 +44,10 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
     Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
+  void _showWorkplaceConfig() {
+    Navigator.pushNamed(context, AppRoutes.workplace);
+  }
+
   void _showCreateEmployee() {
     showDialog(
       context: context,
@@ -69,10 +73,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
           children: [
             SizedBox.square(
               dimension: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 12),
             Text('Gerando relatório...'),
@@ -82,10 +83,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
       ),
     );
 
-    final result = await ctrl.exportExcelReport(
-      month: now.month,
-      year: now.year,
-    );
+    final result = await ctrl.exportExcelReport(month: now.month, year: now.year);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -95,8 +93,8 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
         content: Text(
           result.success
               ? (result.path != null
-                    ? 'Relatório salvo em:\n${result.path}'
-                    : 'Download iniciado com sucesso!')
+                  ? 'Relatório salvo em:\n${result.path}'
+                  : 'Download iniciado com sucesso!')
               : 'Erro: ${result.errorMessage}',
         ),
         backgroundColor: result.success ? Colors.green : Colors.red,
@@ -165,6 +163,7 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
       onSelected: (value) {
         if (value == 'add') _showCreateEmployee();
         if (value == 'excel') _exportExcel();
+        if (value == 'location') _showWorkplaceConfig();
         if (value == 'logout') _logout();
       },
       itemBuilder: (_) => [
@@ -173,6 +172,13 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
           child: ListTile(
             leading: Icon(Icons.person_add),
             title: Text('Novo funcionário'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'location',
+          child: ListTile(
+            leading: Icon(Icons.location_on_outlined),
+            title: Text('Local de trabalho'),
           ),
         ),
         const PopupMenuItem(
@@ -243,9 +249,7 @@ class _EmployeeListTab extends StatelessWidget {
     UserEntity emp,
     ManagerHomeController ctrl,
   ) {
-    final records = ctrl.monthlyRecords
-        .where((r) => r.userId == emp.uid)
-        .toList();
+    final records = ctrl.monthlyRecords.where((r) => r.userId == emp.uid).toList();
 
     showModalBottomSheet(
       context: context,
@@ -259,8 +263,7 @@ class _EmployeeListTab extends StatelessWidget {
         records: records,
         onEdit: (record) => showDialog(
           context: context,
-          builder: (_) =>
-              EditPointDialog(record: record, onSave: ctrl.editPoint),
+          builder: (_) => EditPointDialog(record: record, onSave: ctrl.editPoint),
         ),
       ),
     );
@@ -291,9 +294,7 @@ class _PontoBadge extends StatelessWidget {
     if (record!.hasExit) {
       return Chip(
         label: const Text('Completo'),
-        backgroundColor: isDark
-            ? const Color(0xFF1B3A2A)
-            : Colors.green.shade100,
+        backgroundColor: isDark ? const Color(0xFF1B3A2A) : Colors.green.shade100,
         labelStyle: TextStyle(
           color: isDark ? const Color(0xFF81C995) : Colors.green.shade800,
           fontSize: 12,
@@ -303,9 +304,7 @@ class _PontoBadge extends StatelessWidget {
 
     return Chip(
       label: const Text('Só entrada'),
-      backgroundColor: isDark
-          ? const Color(0xFF3A2A00)
-          : Colors.orange.shade100,
+      backgroundColor: isDark ? const Color(0xFF3A2A00) : Colors.orange.shade100,
       labelStyle: TextStyle(
         color: isDark ? const Color(0xFFFFB74D) : Colors.orange.shade800,
         fontSize: 12,
@@ -347,7 +346,7 @@ class _MonthlyPointsSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  color: colorScheme.onSurfaceVariant.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -375,23 +374,15 @@ class _MonthlyPointsSheet extends StatelessWidget {
                       itemBuilder: (_, i) {
                         final r = records[i];
                         return ListTile(
-                          leading: Icon(
-                            Icons.access_time,
-                            color: colorScheme.primary,
-                          ),
+                          leading: Icon(Icons.access_time, color: colorScheme.primary),
                           title: Text(r.date.toDateDisplay()),
                           subtitle: Text(
                             'Entrada: ${r.entry.toDisplay()}  '
                             'Saída: ${r.exit?.toDisplay() ?? 'pendente'}',
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
+                            style: TextStyle(color: colorScheme.onSurfaceVariant),
                           ),
                           trailing: IconButton(
-                            icon: Icon(
-                              Icons.edit_outlined,
-                              color: colorScheme.primary,
-                            ),
+                            icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
                             onPressed: () => onEdit(r),
                           ),
                         );

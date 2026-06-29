@@ -1,5 +1,9 @@
 
+import 'package:ponto_eletronico/core/service/location_service.dart';
+import 'package:ponto_eletronico/data/datasources/workplace_datasource.dart';
+import 'package:ponto_eletronico/domain/usecases/check_location_usecase.dart';
 import 'package:ponto_eletronico/domain/usecases/delete_point_usecase.dart';
+import 'package:ponto_eletronico/features/manager/controller/workplace_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -22,6 +26,7 @@ List<SingleChildWidget> appProviders = [
   Provider(create: (_) => FirebaseAuthDatasource()),
   Provider(create: (_) => FirestoreUserDatasource()),
   Provider(create: (_) => FirestorePointDatasource()),
+  Provider(create: (_) => WorkplaceDatasource()),
 
   // ── Repositories ─────────────────────────────────────────
   ProxyProvider<FirebaseAuthDatasource, AuthRepositoryImpl>(
@@ -35,6 +40,9 @@ List<SingleChildWidget> appProviders = [
   ),
 
   // ── Use cases ────────────────────────────────────────────
+  ProxyProvider2<WorkplaceDatasource, LocationService, CheckLocationUsecase>(
+    update: (_, wp, loc, __) => CheckLocationUsecase(wp, loc),
+  ),
   ProxyProvider<TimeRecordRepositoryImpl, RegisterPointUsecase>(
     update: (_, repo, __) => RegisterPointUsecase(repo),
   ),
@@ -79,5 +87,11 @@ List<SingleChildWidget> appProviders = [
     ),
     update: (_, report, edit, delete, create, __) =>
         ManagerHomeController(report, delete, edit, create),
+  ),
+  ChangeNotifierProxyProvider2<WorkplaceDatasource, LocationService,
+      WorkplaceController>(
+    create: (_) =>
+        WorkplaceController(WorkplaceDatasource(), LocationService()),
+    update: (_, ds, loc, __) => WorkplaceController(ds, loc),
   ),
 ];

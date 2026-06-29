@@ -8,6 +8,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Ponto Eletronico</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Necessário para validar sua localização ao bater o ponto.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
