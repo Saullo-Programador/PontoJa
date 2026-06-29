@@ -105,7 +105,7 @@ class _WorkplaceConfigScreenState extends State<WorkplaceConfigScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.08),
+                    color: Colors.green.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.green.shade200),
                   ),

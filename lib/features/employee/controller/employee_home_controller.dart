@@ -10,7 +10,7 @@ class EmployeeHomeController extends ChangeNotifier {
   EmployeeHomeController(this._registerPointUsecase);
 
   PointStatus _status = PointStatus.idle;
-  TimeRecordEntity? _todayRecord = null;
+  TimeRecordEntity? _todayRecord;
   String _errorMessage = '';
 
   PointStatus get status => _status;

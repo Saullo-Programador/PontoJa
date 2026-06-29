@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 20,
                     spreadRadius: 2,
                     offset: const Offset(-5, 0), // sombra para a esquerda

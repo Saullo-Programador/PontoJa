@@ -88,7 +88,7 @@ class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _role,
+              initialValue: _role,
               decoration: InputDecoration(
                 labelText: 'Perfil',
                 border: OutlineInputBorder(

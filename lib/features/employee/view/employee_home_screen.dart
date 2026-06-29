@@ -125,7 +125,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 12,
                 ),
               ),
@@ -180,7 +180,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: cs.primary.withOpacity(0.15),
+                            color: cs.primary.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -205,7 +205,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                               _greeting(),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: cs.onPrimaryContainer.withOpacity(0.7),
+                                color: cs.onPrimaryContainer.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -387,7 +387,7 @@ class _TimelineRow extends StatelessWidget {
               height: 2,
               width: 12,
               color: steps[i].done
-                  ? steps[i].color.withOpacity(0.5)
+                  ? steps[i].color.withValues(alpha: 0.5)
                   : Theme.of(context).colorScheme.outlineVariant,
             ),
         ],
@@ -425,7 +425,7 @@ class _TimelineStep extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: done
-                ? color.withOpacity(isDark ? 0.2 : 0.1)
+                ? color.withValues(alpha: isDark ? 0.2 : 0.1)
                 : cs.surfaceContainerLow,
             border: Border.all(
               color: done ? color : cs.outlineVariant,
@@ -480,7 +480,7 @@ class _PunchButton extends StatelessWidget {
           color: Colors.green,
           boxShadow: [
             BoxShadow(
-              color: Colors.green.withOpacity(0.4),
+              color: Colors.green.withValues(alpha: 0.4),
               blurRadius: 30,
               spreadRadius: 4,
               offset: const Offset(0, 8),
@@ -599,7 +599,7 @@ class _CircleButton extends StatelessWidget {
           color: color,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 24,
               spreadRadius: 3,
               offset: const Offset(0, 6),
@@ -647,7 +647,7 @@ class _CompleteBadge extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withOpacity(0.2),
+            color: Colors.green.withValues(alpha: 0.2),
             blurRadius: 24,
             spreadRadius: 2,
           ),
@@ -675,7 +675,7 @@ class _CompleteBadge extends StatelessWidget {
             'Bom trabalho hoje',
             style: TextStyle(
               color: isDark
-                  ? const Color(0xFF81C995).withOpacity(0.7)
+                  ? const Color(0xFF81C995).withValues(alpha: 0.7)
                   : Colors.green.shade600,
               fontSize: 11,
             ),
