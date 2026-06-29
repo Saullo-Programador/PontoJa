@@ -23,7 +23,7 @@ void main() {
       when(mockRepo.getTodayRecord(userId)).thenAnswer((_) async => null);
       when(mockRepo.registerEntry(any)).thenAnswer((_) async {});
 
-      await usecase.execute(userId);
+      await usecase.execute(userId, PunchStep.entry);
 
       verify(mockRepo.registerEntry(any)).called(1);
       verifyNever(mockRepo.registerExit(any, any));
@@ -40,7 +40,7 @@ void main() {
           .thenAnswer((_) async => existingRecord);
       when(mockRepo.registerExit(any, any)).thenAnswer((_) async {});
 
-      await usecase.execute(userId);
+      await usecase.execute(userId, PunchStep.exit);
 
       verify(mockRepo.registerExit('rec_1', any)).called(1);
       verifyNever(mockRepo.registerEntry(any));
@@ -57,7 +57,7 @@ void main() {
       when(mockRepo.getTodayRecord(userId))
           .thenAnswer((_) async => completeRecord);
 
-      await usecase.execute(userId);
+      await usecase.execute(userId, PunchStep.entry);
 
       verifyNever(mockRepo.registerEntry(any));
       verifyNever(mockRepo.registerExit(any, any));

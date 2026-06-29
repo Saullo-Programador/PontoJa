@@ -60,7 +60,7 @@ void main() {
       when(mockRepo.getTodayRecord(userId)).thenAnswer((_) async => null);
       when(mockRepo.registerEntry(any)).thenAnswer((_) async {});
 
-      await controller.registerPoint(userId);
+      await controller.registerPoint(userId, PunchStep.entry);
 
       verify(mockRepo.registerEntry(any)).called(1);
       expect(controller.status, equals(PointStatus.idle));
