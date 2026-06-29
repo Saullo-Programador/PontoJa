@@ -6,11 +6,13 @@ class GetMonthlyReportUsecase {
 
   GetMonthlyReportUsecase(this._repository);
 
+  // ── Futures (relatório / export) ─────────────────────────────────────────
+
   Future<List<TimeRecordEntity>> execute({
     required int month,
     required int year,
   }) =>
-      _repository.getAllMonthlyRecords(month: month, year: year);
+      _repository.watchMonthlyRecords(month: month, year: year).first;
 
   Future<List<TimeRecordEntity>> executeForUser({
     required String userId,
@@ -19,6 +21,14 @@ class GetMonthlyReportUsecase {
   }) =>
       _repository.getMonthlyRecords(userId, month: month, year: year);
 
-  Future<List<TimeRecordEntity>> getTodayAll() =>
-      _repository.getAllTodayRecords();
+  // ── Streams (tempo real para o gerente) ──────────────────────────────────
+
+  Stream<List<TimeRecordEntity>> watchTodayAll() =>
+      _repository.watchTodayRecords();
+
+  Stream<List<TimeRecordEntity>> watchMonthly({
+    required int month,
+    required int year,
+  }) =>
+      _repository.watchMonthlyRecords(month: month, year: year);
 }

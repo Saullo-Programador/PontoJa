@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:ponto_eletronico/core/service/excel_export_service.dart';
 import 'package:ponto_eletronico/core/service/file_io/file_save_result.dart';
@@ -17,6 +18,10 @@ class ManagerHomeController extends ChangeNotifier {
   final _excelService = ExcelExportService();
   final _userDs = FirestoreUserDatasource();
 
+  // Subscriptions dos streams — canceladas no dispose()
+  StreamSubscription<List<TimeRecordEntity>>? _todaySub;
+  StreamSubscription<List<TimeRecordEntity>>? _monthlySub;
+
   ManagerHomeController(
     this._reportUsecase,
     this._editPointUsecase,
@@ -35,33 +40,59 @@ class ManagerHomeController extends ChangeNotifier {
   List<TimeRecordEntity> get todayRecords => _todayRecords;
   List<TimeRecordEntity> get monthlyRecords => _monthlyRecords;
 
+  /// Inicia os streams em tempo real.
+  /// Chamado uma vez no initState da tela — os dados se atualizam
+  /// automaticamente sempre que um funcionário bate o ponto.
   Future<void> loadAll() async {
     _status = ManagerStatus.loading;
     notifyListeners();
 
     try {
+      // Funcionários: lista estática (muda só quando criar/editar usuário)
+      _employees = await _userDs.getAllEmployees();
+
       final now = DateTime.now();
-      final results = await Future.wait([
-        _userDs.getAllEmployees(),
-        _reportUsecase.getTodayAll(),
-        _reportUsecase.execute(month: now.month, year: now.year),
-      ]);
 
-      _employees = results[0] as List<UserEntity>;
-      _todayRecords = results[1] as List<TimeRecordEntity>;
-      _monthlyRecords = results[2] as List<TimeRecordEntity>;
-      _status = ManagerStatus.idle;
+      // ── Stream: ponto do dia ─────────────────────────────────────────
+      _todaySub?.cancel();
+      _todaySub = _reportUsecase.watchTodayAll().listen(
+        (records) {
+          _todayRecords = records;
+          _status = ManagerStatus.idle;
+          notifyListeners(); // ← UI atualiza automaticamente
+        },
+        onError: (_) {
+          _error = 'Erro ao ouvir registros do dia.';
+          _status = ManagerStatus.error;
+          notifyListeners();
+        },
+      );
+
+      // ── Stream: ponto do mês ─────────────────────────────────────────
+      _monthlySub?.cancel();
+      _monthlySub = _reportUsecase
+          .watchMonthly(month: now.month, year: now.year)
+          .listen(
+        (records) {
+          _monthlyRecords = records;
+          notifyListeners();
+        },
+        onError: (_) {
+          _error = 'Erro ao ouvir registros do mês.';
+          _status = ManagerStatus.error;
+          notifyListeners();
+        },
+      );
     } catch (e) {
-      _error = 'Erro ao carregar dados.';
+      _error = 'Erro ao inicializar dados.';
       _status = ManagerStatus.error;
+      notifyListeners();
     }
-
-    notifyListeners();
   }
 
   Future<void> editPoint(TimeRecordEntity record) async {
     await _editPointUsecase.execute(record);
-    await loadAll();
+    // Não precisa chamar loadAll() — os streams atualizam sozinhos
   }
 
   Future<void> createEmployee({
@@ -80,15 +111,21 @@ class ManagerHomeController extends ChangeNotifier {
         password: password,
         role: role,
       );
-      await loadAll();
+      // Recarrega lista de funcionários (não é stream)
+      _employees = await _userDs.getAllEmployees();
+      _status = ManagerStatus.idle;
     } catch (e) {
       _error = 'Erro ao criar usuário.';
       _status = ManagerStatus.error;
-      notifyListeners();
     }
+
+    notifyListeners();
   }
 
-  Future<FileSaveResult> exportExcelReport({required int month, required int year}) {
+  Future<FileSaveResult> exportExcelReport({
+    required int month,
+    required int year,
+  }) {
     return _excelService.exportMonthlyReport(
       month: month,
       year: year,
@@ -103,5 +140,13 @@ class ManagerHomeController extends ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Cancela os streams ao descartar o controller.
+  @override
+  void dispose() {
+    _todaySub?.cancel();
+    _monthlySub?.cancel();
+    super.dispose();
   }
 }

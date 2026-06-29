@@ -32,19 +32,19 @@ void main() {
 
   group('GetMonthlyReportUsecase', () {
     test('execute retorna todos os registros do mês', () async {
-      when(mockRepo.getAllMonthlyRecords(month: 6, year: 2025))
-          .thenAnswer((_) async => records);
+      when(mockRepo.watchMonthlyRecords(month: 6, year: 2025))
+          .thenAnswer((_) => Stream.value(records));
 
       final result = await usecase.execute(month: 6, year: 2025);
 
       expect(result, equals(records));
-      verify(mockRepo.getAllMonthlyRecords(month: 6, year: 2025)).called(1);
+      verify(mockRepo.watchMonthlyRecords(month: 6, year: 2025)).called(1);
     });
 
     test('executeForUser filtra registros por usuário', () async {
       final userRecords = records.where((r) => r.userId == 'u1').toList();
-      when(mockRepo.getMonthlyRecords('u1', month: 6, year: 2025))
-          .thenAnswer((_) async => userRecords);
+      when(mockRepo.watchMonthlyRecords(month: 6, year: 2025))
+          .thenAnswer((_) => Stream.value(userRecords));
 
       final result = await usecase.executeForUser(
         userId: 'u1',
@@ -57,12 +57,12 @@ void main() {
     });
 
     test('getTodayAll retorna os registros de hoje', () async {
-      when(mockRepo.getAllTodayRecords()).thenAnswer((_) async => records);
+      when(mockRepo.watchTodayRecords()).thenAnswer((_) => Stream.value(records));
 
-      final result = await usecase.getTodayAll();
+      final result = await usecase.watchTodayAll().first;
 
       expect(result, equals(records));
-      verify(mockRepo.getAllTodayRecords()).called(1);
+      verify(mockRepo.watchTodayRecords()).called(1);
     });
   });
 }

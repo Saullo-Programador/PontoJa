@@ -71,6 +71,56 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
 
     if (confirmed == true && mounted) {
       context.read<EmployeeHomeController>().registerPoint(uid);
+      if (!mounted) return;
+
+      // ── Feedback visual após registrar ──────────────────────────────
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: isEntry ? Colors.green : Colors.orange,
+          duration: const Duration(seconds: 3),
+          content: Row(
+            children: [
+              Icon(
+                isEntry
+                    ? Icons.login_rounded
+                    : Icons.check_circle_outline_rounded,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEntry ? 'Entrada registrada!' : 'Tchau! 👋',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      isEntry
+                          ? 'Bom trabalho hoje!'
+                          : 'Saída registrada com sucesso.',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
   }
 
@@ -105,7 +155,6 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-
               // ── Cabeçalho: data + saudação ─────────────────────────────
               Container(
                 padding: const EdgeInsets.all(20),
@@ -143,7 +192,9 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                           _greeting(),
                           style: TextStyle(
                             fontSize: 13,
-                            color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+                            color: colorScheme.onPrimaryContainer.withOpacity(
+                              0.7,
+                            ),
                           ),
                         ),
                       ],
@@ -168,12 +219,12 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                         child: CircularProgressIndicator(strokeWidth: 3),
                       )
                     : punchComplete
-                        ? _CompleteBadge(isDark: isDark)
-                        : _PunchButton(
-                            isEntry: isEntry,
-                            color: punchColor,
-                            onTap: () => _confirmAndPunch(uid, isEntry),
-                          ),
+                    ? _CompleteBadge(isDark: isDark)
+                    : _PunchButton(
+                        isEntry: isEntry,
+                        color: punchColor,
+                        onTap: () => _confirmAndPunch(uid, isEntry),
+                      ),
               ),
 
               const Spacer(),
@@ -355,7 +406,9 @@ class _PunchCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: done ? color : Theme.of(context).colorScheme.onSurfaceVariant,
+              color: done
+                  ? color
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

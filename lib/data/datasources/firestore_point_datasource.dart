@@ -9,11 +9,14 @@ class FirestorePointDatasource {
   CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreConstants.timeRecords);
 
-  Future<void> addRecord(TimeRecordModel record) =>
-      _col.add(record.toMap());
+  // ── Escrita ──────────────────────────────────────────────────────────────
+
+  Future<void> addRecord(TimeRecordModel record) => _col.add(record.toMap());
 
   Future<void> updateRecord(TimeRecordModel record) =>
       _col.doc(record.id).update(record.toMap());
+
+  // ── Leitura pontual (Future) ─────────────────────────────────────────────
 
   Future<TimeRecordModel?> getTodayRecord(String userId) async {
     final now = DateTime.now();
@@ -46,29 +49,35 @@ class FirestorePointDatasource {
     return snap.docs.map(TimeRecordModel.fromFirestore).toList();
   }
 
-  Future<List<TimeRecordModel>> getAllTodayRecords() async {
-    final now = DateTime.now();
-    final snap = await _col
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(now.startOfDay))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(now.endOfDay))
-        .get();
+  // ── Streams em tempo real (para o gerente) ───────────────────────────────
 
-    return snap.docs.map(TimeRecordModel.fromFirestore).toList();
+  /// Emite a lista de registros de hoje sempre que qualquer funcionário
+  /// bate o ponto — sem precisar recarregar manualmente.
+  Stream<List<TimeRecordModel>> watchTodayRecords() {
+    final now = DateTime.now();
+    return _col
+        .where('date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(now.startOfDay))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(now.endOfDay))
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map(TimeRecordModel.fromFirestore).toList());
   }
 
-  Future<List<TimeRecordModel>> getAllMonthlyRecords({
+  /// Emite os registros do mês sempre que há alguma alteração.
+  Stream<List<TimeRecordModel>> watchMonthlyRecords({
     required int month,
     required int year,
-  }) async {
+  }) {
     final start = DateTime(year, month);
     final end = start.startOfNextMonth;
 
-    final snap = await _col
+    return _col
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .where('date', isLessThan: Timestamp.fromDate(end))
         .orderBy('date')
-        .get();
-
-    return snap.docs.map(TimeRecordModel.fromFirestore).toList();
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map(TimeRecordModel.fromFirestore).toList());
   }
 }

@@ -9,8 +9,9 @@ abstract class ITimeRecordRepository {
     required int month,
     required int year,
   });
-  Future<List<TimeRecordEntity>> getAllTodayRecords();
-  Future<List<TimeRecordEntity>> getAllMonthlyRecords({
+  // Streams em tempo real
+  Stream<List<TimeRecordEntity>> watchTodayRecords();
+  Stream<List<TimeRecordEntity>> watchMonthlyRecords({
     required int month,
     required int year,
   });

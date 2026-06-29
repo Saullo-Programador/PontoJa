@@ -129,30 +129,26 @@ class MockITimeRecordRepository extends _i1.Mock
           as _i5.Future<List<_i7.TimeRecordEntity>>);
 
   @override
-  _i5.Future<List<_i7.TimeRecordEntity>> getAllTodayRecords() =>
+  _i5.Stream<List<_i7.TimeRecordEntity>> watchTodayRecords() =>
       (super.noSuchMethod(
-            Invocation.method(#getAllTodayRecords, []),
-            returnValue: _i5.Future<List<_i7.TimeRecordEntity>>.value(
-              <_i7.TimeRecordEntity>[],
-            ),
+            Invocation.method(#watchTodayRecords, []),
+            returnValue: _i5.Stream<List<_i7.TimeRecordEntity>>.empty(),
           )
-          as _i5.Future<List<_i7.TimeRecordEntity>>);
+          as _i5.Stream<List<_i7.TimeRecordEntity>>);
 
   @override
-  _i5.Future<List<_i7.TimeRecordEntity>> getAllMonthlyRecords({
+  _i5.Stream<List<_i7.TimeRecordEntity>> watchMonthlyRecords({
     required int? month,
     required int? year,
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#getAllMonthlyRecords, [], {
+            Invocation.method(#watchMonthlyRecords, [], {
               #month: month,
               #year: year,
             }),
-            returnValue: _i5.Future<List<_i7.TimeRecordEntity>>.value(
-              <_i7.TimeRecordEntity>[],
-            ),
+            returnValue: _i5.Stream<List<_i7.TimeRecordEntity>>.empty(),
           )
-          as _i5.Future<List<_i7.TimeRecordEntity>>);
+          as _i5.Stream<List<_i7.TimeRecordEntity>>);
 
   @override
   _i5.Future<void> updateRecord(_i7.TimeRecordEntity? record) =>
