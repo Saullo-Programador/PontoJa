@@ -302,6 +302,17 @@ class _PontoBadge extends StatelessWidget {
       );
     }
 
+    if(record!.isOnBreak) {
+      return Chip(
+        label: const Text('Intervalo'),
+        backgroundColor: isDark ? const Color(0xFF1A2A3A) : Colors.blue.shade100,
+        labelStyle: TextStyle(
+          color: isDark ? const Color(0xFF81C9E9) : Colors.blue.shade800,
+          fontSize: 12,
+        ),
+      );
+    }
+
     return Chip(
       label: const Text('Só entrada'),
       backgroundColor: isDark ? const Color(0xFF3A2A00) : Colors.orange.shade100,

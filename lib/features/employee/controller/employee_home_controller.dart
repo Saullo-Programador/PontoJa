@@ -10,10 +10,10 @@ class EmployeeHomeController extends ChangeNotifier {
   EmployeeHomeController(this._registerPointUsecase);
 
   PointStatus _status = PointStatus.idle;
-  TimeRecordEntity? _todayRecord;
+  TimeRecordEntity? _todayRecord = null;
   String _errorMessage = '';
 
-  PointStatus get status      => _status;
+  PointStatus get status => _status;
   TimeRecordEntity? get todayRecord => _todayRecord;
   String get errorMessage     => _errorMessage;
 
@@ -21,6 +21,7 @@ class EmployeeHomeController extends ChangeNotifier {
   bool get isOnBreak  => _todayRecord?.isOnBreak ?? false;
   bool get hasExit    => _todayRecord?.hasExit ?? false;
   bool get isComplete => _todayRecord?.isComplete ?? false;
+  int get breakCount => _todayRecord?.breaks.length ?? 0;
   PunchStep get nextStep => _todayRecord?.nextStep ?? PunchStep.breakStart;
 
   Future<void> loadTodayRecord(String userId) async {
@@ -60,3 +61,4 @@ class EmployeeHomeController extends ChangeNotifier {
     }
   }
 }
+

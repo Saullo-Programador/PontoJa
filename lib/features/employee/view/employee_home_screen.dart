@@ -34,6 +34,14 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
+  Future<void> _refresh() async {
+    final uid = _authDs.currentUser?.uid;
+
+    if (uid != null) {
+      await context.read<EmployeeHomeController>().loadTodayRecord(uid);
+    }
+  }
+
   Future<void> _confirmAndPunch(String uid, PunchStep step) async {
     final info = _stepInfo(step);
     final confirmed = await showDialog<bool>(
@@ -64,8 +72,9 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
 
     if (confirmed != true || !mounted) return;
 
-    final completedStep =
-        await context.read<EmployeeHomeController>().registerPoint(uid);
+    final completedStep = await context
+        .read<EmployeeHomeController>()
+        .registerPoint(uid);
 
     if (!mounted) return;
     _showFeedback(completedStep);
@@ -73,14 +82,25 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
 
   void _showFeedback(PunchStep completed) {
     final msgs = {
-      PunchStep.breakStart: ('Entrada registrada! 🎉', 'Bom trabalho hoje!', Colors.green),
-      PunchStep.breakEnd:   ('Bom intervalo! ☕',      'Descanse bem.',        Colors.blue),
-      PunchStep.exit:       ('Voltou do intervalo! 💪', 'Continue arrasando!', Colors.purple),
-      PunchStep.done:       ('Até amanhã! 👋',          'Saída registrada.',   Colors.orange),
+      PunchStep.breakStart: (
+        'Intervalo iniciado ☕',
+        'Bom descanso.',
+        Colors.blue,
+      ),
+
+      PunchStep.breakEnd: (
+        'Retorno registrado 💪',
+        'Bom trabalho.',
+        Colors.purple,
+      ),
+
+      PunchStep.exit: ('Saída registrada 👋', 'Até amanhã.', Colors.orange),
+
+      PunchStep.done: ('Ponto concluído', '', Colors.green),
     };
 
-    final (title, subtitle, color) = msgs[completed] ??
-        ('Ponto registrado!', '', Colors.green);
+    final (title, subtitle, color) =
+        msgs[completed] ?? ('Ponto registrado!', '', Colors.green);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -93,15 +113,22 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15)),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
             if (subtitle.isNotEmpty)
-              Text(subtitle,
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.85), fontSize: 12)),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.85),
+                  fontSize: 12,
+                ),
+              ),
           ],
         ),
       ),
@@ -129,97 +156,117 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-
-              // ── Cabeçalho ───────────────────────────────────────────────
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: cs.primary.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.calendar_today_outlined,
-                          color: cs.primary, size: 24),
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height - 140,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Cabeçalho ───────────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(now.toDateDisplay(),
-                            style: TextStyle(
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.calendar_today_outlined,
+                            color: cs.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              now.toDateDisplay(),
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: cs.onPrimaryContainer)),
-                        Text(_greeting(),
-                            style: TextStyle(
+                                color: cs.onPrimaryContainer,
+                              ),
+                            ),
+                            Text(
+                              _greeting(),
+                              style: TextStyle(
                                 fontSize: 13,
-                                color:
-                                    cs.onPrimaryContainer.withOpacity(0.7))),
+                                color: cs.onPrimaryContainer.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // ── Timeline de status ───────────────────────────────────────
-              _TimelineRow(record: ctrl.todayRecord, isDark: isDark),
+                  // ── Timeline de status ───────────────────────────────────────
+                  _TimelineRow(record: ctrl.todayRecord, isDark: isDark),
 
-              const Spacer(),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.12),
 
-              // ── Botão central / badge completo ───────────────────────────
-              Center(
-                child: ctrl.status == PointStatus.loading
-                    ? const SizedBox(
-                        width: 160,
-                        height: 160,
-                        child: CircularProgressIndicator(strokeWidth: 3))
-                    : ctrl.isComplete
+                  // ── Botão central / badge completo ───────────────────────────
+                  Center(
+                    child: ctrl.status == PointStatus.loading
+                        ? const SizedBox(
+                            width: 160,
+                            height: 160,
+                            child: CircularProgressIndicator(strokeWidth: 3),
+                          )
+                        : ctrl.isComplete
                         ? _CompleteBadge(isDark: isDark)
                         : !ctrl.hasEntry
-                            // ── Botão único: ENTRADA ─────────────────────
-                            ? _PunchButton(
-                                step: PunchStep.breakStart,
-                                onTap: () =>
-                                    _confirmAndPunch(uid, PunchStep.breakStart),
-                              )
-                            // ── Dois botões: intervalo + saída ───────────
-                            : _DoubleButtons(
-                                step: ctrl.nextStep,
-                                isOnBreak: ctrl.isOnBreak,
-                                onTap: (s) => _confirmAndPunch(uid, s),
-                              ),
-              ),
-
-              const Spacer(),
-
-              // ── Erro ─────────────────────────────────────────────────────
-              if (ctrl.status == PointStatus.error)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade200),
+                        // ── Botão único: ENTRADA ─────────────────────
+                        ? _PunchButton(
+                            step: PunchStep.breakStart,
+                            onTap: () =>
+                                _confirmAndPunch(uid, PunchStep.breakStart),
+                          )
+                        // ── Dois botões: intervalo + saída ───────────
+                        : _DoubleButtons(
+                            step: ctrl.nextStep,
+                            isOnBreak: ctrl.isOnBreak,
+                            breakCount: ctrl.breakCount,
+                            onTap: (s) => _confirmAndPunch(uid, s),
+                          ),
                   ),
-                  child: Text(ctrl.errorMessage,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center),
-                ),
-            ],
+
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.12),
+
+                  // ── Erro ─────────────────────────────────────────────────────
+                  if (ctrl.status == PointStatus.error)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(
+                        ctrl.errorMessage,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -234,27 +281,37 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   }
 
   _StepInfo _stepInfo(PunchStep step) => switch (step) {
-        PunchStep.breakStart => _StepInfo(
-            icon: Icons.login_rounded,
-            color: Colors.green,
-            label: 'Registrar Entrada',
-            question: 'Deseja confirmar o registro de entrada agora?'),
-        PunchStep.breakEnd => _StepInfo(
-            icon: Icons.coffee_rounded,
-            color: Colors.blue,
-            label: 'Iniciar Intervalo',
-            question: 'Deseja iniciar o intervalo agora?'),
-        PunchStep.exit => _StepInfo(
-            icon: Icons.play_circle_outline_rounded,
-            color: Colors.purple,
-            label: 'Voltar do Intervalo',
-            question: 'Deseja registrar o retorno do intervalo?'),
-        PunchStep.done => _StepInfo(
-            icon: Icons.logout_rounded,
-            color: Colors.orange,
-            label: 'Registrar Saída',
-            question: 'Deseja confirmar o registro de saída?'),
-      };
+    PunchStep.entry => _StepInfo(
+      icon: Icons.login_rounded,
+      color: Colors.green,
+      label: 'Registrar Entrada',
+      question: 'Deseja registrar a entrada?',
+    ),
+    PunchStep.breakStart => _StepInfo(
+      icon: Icons.login_rounded,
+      color: Colors.green,
+      label: 'Iniciar Intervalo',
+      question: 'Deseja iniciar o intervalo?',
+    ),
+    PunchStep.breakEnd => _StepInfo(
+      icon: Icons.coffee_rounded,
+      color: Colors.blue,
+      label: 'Retornar do Intervalo',
+      question: 'Deseja registrar o retorno?',
+    ),
+    PunchStep.exit => _StepInfo(
+      icon: Icons.play_circle_outline_rounded,
+      color: Colors.purple,
+      label: 'Registrar Saída',
+      question: 'Deseja registrar a saída?',
+    ),
+    PunchStep.done => _StepInfo(
+      icon: Icons.logout_rounded,
+      color: Colors.orange,
+      label: 'Registrar Saída',
+      question: 'Deseja confirmar o registro de saída?',
+    ),
+  };
 }
 
 // ── Data class auxiliar ────────────────────────────────────────────────────
@@ -294,7 +351,9 @@ class _TimelineRow extends StatelessWidget {
       _TimelineStep(
         icon: Icons.coffee_rounded,
         label: 'Intervalo',
-        time: record?.breakStart?.toDisplay(),
+        time: record != null && record!.breaks.isNotEmpty
+            ? record!.breaks.last.start.toDisplay()
+            : null,
         color: Colors.blue,
         done: record?.hasBreakStart ?? false,
         isDark: isDark,
@@ -302,7 +361,9 @@ class _TimelineRow extends StatelessWidget {
       _TimelineStep(
         icon: Icons.play_circle_outline_rounded,
         label: 'Retorno',
-        time: record?.breakEnd?.toDisplay(),
+        time: record != null && record!.breaks.isNotEmpty
+            ? record!.breaks.last.end?.toDisplay()
+            : null,
         color: Colors.purple,
         done: record?.hasBreakEnd ?? false,
         isDark: isDark,
@@ -371,21 +432,28 @@ class _TimelineStep extends StatelessWidget {
               width: done ? 2 : 1,
             ),
           ),
-          child: Icon(icon,
-              color: done ? color : cs.onSurfaceVariant, size: 20),
+          child: Icon(
+            icon,
+            color: done ? color : cs.onSurfaceVariant,
+            size: 20,
+          ),
         ),
         const SizedBox(height: 6),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: done ? color : cs.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: done ? color : cs.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 2),
         Text(
           time ?? '—',
           style: TextStyle(
-              fontSize: 10,
-              color: done ? cs.onSurface : cs.onSurfaceVariant),
+            fontSize: 10,
+            color: done ? cs.onSurface : cs.onSurfaceVariant,
+          ),
         ),
       ],
     );
@@ -424,14 +492,19 @@ class _PunchButton extends StatelessWidget {
           children: [
             Icon(Icons.login_rounded, color: Colors.white, size: 48),
             SizedBox(height: 8),
-            Text('Entrada',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700)),
+            Text(
+              'Entrada',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             SizedBox(height: 4),
-            Text('Toque para registrar',
-                style: TextStyle(color: Colors.white70, fontSize: 11)),
+            Text(
+              'Toque para registrar',
+              style: TextStyle(color: Colors.white70, fontSize: 11),
+            ),
           ],
         ),
       ),
@@ -444,23 +517,33 @@ class _PunchButton extends StatelessWidget {
 class _DoubleButtons extends StatelessWidget {
   final PunchStep step;
   final bool isOnBreak;
+  final int breakCount;
   final void Function(PunchStep) onTap;
 
   const _DoubleButtons({
     required this.step,
     required this.isOnBreak,
+    required this.breakCount,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Se está em intervalo: só mostra "Voltar do Intervalo"
-    // Se não está: mostra "Iniciar Intervalo" + "Saída"
     if (isOnBreak) {
       return _CircleButton(
         icon: Icons.play_circle_outline_rounded,
-        label: 'Voltar do\nIntervalo',
+        label: 'Retornar',
         color: Colors.purple,
+        size: 180,
+        onTap: () => onTap(PunchStep.breakEnd),
+      );
+    }
+
+    if (breakCount >= 3) {
+      return _CircleButton(
+        icon: Icons.logout_rounded,
+        label: 'Saída',
+        color: Colors.orange,
         size: 180,
         onTap: () => onTap(PunchStep.exit),
       );
@@ -474,7 +557,7 @@ class _DoubleButtons extends StatelessWidget {
           label: 'Intervalo',
           color: Colors.blue,
           size: 140,
-          onTap: () => onTap(PunchStep.breakEnd),
+          onTap: () => onTap(PunchStep.breakStart),
         ),
         const SizedBox(width: 24),
         _CircleButton(
@@ -482,7 +565,7 @@ class _DoubleButtons extends StatelessWidget {
           label: 'Saída',
           color: Colors.orange,
           size: 140,
-          onTap: () => onTap(PunchStep.done),
+          onTap: () => onTap(PunchStep.exit),
         ),
       ],
     );
@@ -564,30 +647,39 @@ class _CompleteBadge extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-              color: Colors.green.withOpacity(0.2),
-              blurRadius: 24,
-              spreadRadius: 2),
+            color: Colors.green.withOpacity(0.2),
+            blurRadius: 24,
+            spreadRadius: 2,
+          ),
         ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle_outline_rounded,
-              color: isDark ? const Color(0xFF81C995) : Colors.green,
-              size: 52),
+          Icon(
+            Icons.check_circle_outline_rounded,
+            color: isDark ? const Color(0xFF81C995) : Colors.green,
+            size: 52,
+          ),
           const SizedBox(height: 8),
-          Text('Completo!',
-              style: TextStyle(
-                  color: isDark ? const Color(0xFF81C995) : Colors.green.shade700,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700)),
+          Text(
+            'Completo!',
+            style: TextStyle(
+              color: isDark ? const Color(0xFF81C995) : Colors.green.shade700,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Bom trabalho hoje',
-              style: TextStyle(
-                  color: isDark
-                      ? const Color(0xFF81C995).withOpacity(0.7)
-                      : Colors.green.shade600,
-                  fontSize: 11)),
+          Text(
+            'Bom trabalho hoje',
+            style: TextStyle(
+              color: isDark
+                  ? const Color(0xFF81C995).withOpacity(0.7)
+                  : Colors.green.shade600,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );

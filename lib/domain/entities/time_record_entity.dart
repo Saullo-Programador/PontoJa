@@ -1,10 +1,31 @@
+class BreakRecord {
+  final DateTime start;
+  final DateTime? end;
+
+  const BreakRecord({
+    required this.start,
+    this.end,
+  });
+
+  bool get isOpen => end == null;
+
+  BreakRecord copyWith({
+    DateTime? start,
+    DateTime? end,
+  }) {
+    return BreakRecord(
+      start: start ?? this.start,
+      end: end ?? this.end,
+    );
+  }
+}
+
 class TimeRecordEntity {
   final String? id;
   final String userId;
   final DateTime date;
   final DateTime entry;
-  final DateTime? breakStart;   // início do intervalo
-  final DateTime? breakEnd;     // fim do intervalo (voltou)
+  final List<BreakRecord> breaks;
   final DateTime? exit;
 
   const TimeRecordEntity({
@@ -12,41 +33,59 @@ class TimeRecordEntity {
     required this.userId,
     required this.date,
     required this.entry,
-    this.breakStart,
-    this.breakEnd,
+    this.breaks = const [],
     this.exit,
   });
 
-  // ── Estado atual do ponto ────────────────────────────────────────────────
+  bool get hasEntry => true;
 
-  bool get hasEntry      => true;               // entry é obrigatório
-  bool get hasBreakStart => breakStart != null;
-  bool get hasBreakEnd   => breakEnd != null;
-  bool get hasExit       => exit != null;
+  bool get hasBreakStart => breaks.isNotEmpty;
 
-  /// Em intervalo = iniciou mas ainda não voltou
-  bool get isOnBreak => hasBreakStart && !hasBreakEnd;
+  bool get hasBreakEnd =>
+      breaks.any((b) => b.end != null);
 
-  /// Completo = tem saída
-  bool get isComplete => hasExit;
+  bool get hasExit => exit != null;
 
-  /// Próxima ação esperada
+  bool get isOnBreak =>
+      breaks.any((b) => b.isOpen);
+
+  bool get isComplete => exit != null;
+
+  bool get canStartBreak =>
+      breaks.length < 3 &&
+      !isOnBreak;
+
   PunchStep get nextStep {
-    if (!hasBreakStart) return PunchStep.breakStart;
-    if (!hasBreakEnd)   return PunchStep.breakEnd;
-    if (!hasExit)       return PunchStep.exit;
+    if (isOnBreak) {
+      return PunchStep.breakEnd;
+    }
+
+    if (breaks.length < 3) {
+      return PunchStep.breakStart;
+    }
+
+    if (exit == null) {
+      return PunchStep.exit;
+    }
+
     return PunchStep.done;
   }
 
-  // ── Cálculo de horas ────────────────────────────────────────────────────
-
-  /// Tempo total trabalhado descontando o intervalo
   Duration? get workedDuration {
-    if (!hasExit) return null;
+    if (exit == null) return null;
+
     final total = exit!.difference(entry);
-    final breakTime = (hasBreakStart && hasBreakEnd)
-        ? breakEnd!.difference(breakStart!)
-        : Duration.zero;
+
+    final breakTime = breaks.fold(
+      Duration.zero,
+      (sum, b) {
+        if (b.end != null) {
+          return sum + b.end!.difference(b.start);
+        }
+        return sum;
+      },
+    );
+
     return total - breakTime;
   }
 
@@ -55,8 +94,7 @@ class TimeRecordEntity {
     String? userId,
     DateTime? date,
     DateTime? entry,
-    DateTime? breakStart,
-    DateTime? breakEnd,
+    List<BreakRecord>? breaks,
     DateTime? exit,
   }) {
     return TimeRecordEntity(
@@ -64,11 +102,16 @@ class TimeRecordEntity {
       userId: userId ?? this.userId,
       date: date ?? this.date,
       entry: entry ?? this.entry,
-      breakStart: breakStart ?? this.breakStart,
-      breakEnd: breakEnd ?? this.breakEnd,
+      breaks: breaks ?? this.breaks,
       exit: exit ?? this.exit,
     );
   }
 }
 
-enum PunchStep { breakStart, breakEnd, exit, done }
+enum PunchStep {
+  entry,
+  breakStart,
+  breakEnd,
+  exit,
+  done,
+}
