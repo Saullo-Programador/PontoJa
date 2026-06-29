@@ -6,24 +6,49 @@ class RegisterPointUsecase {
 
   RegisterPointUsecase(this._repository);
 
-  /// Registra entrada ou saída dependendo do estado atual.
-  Future<void> execute(String userId) async {
+  /// Avança o ponto para a próxima etapa automaticamente:
+  /// sem registro → entrada
+  /// entrada feita → iniciar intervalo
+  /// em intervalo  → voltar do intervalo
+  /// voltou        → saída
+  Future<PunchStep> execute(String userId) async {
     final existing = await _repository.getTodayRecord(userId);
 
     if (existing == null) {
-      // Sem registro hoje → bate entrada
+      // ── Bate entrada ─────────────────────────────────────────────────
       final now = DateTime.now();
-      final record = TimeRecordEntity(
+      await _repository.registerEntry(TimeRecordEntity(
         userId: userId,
         date: DateTime(now.year, now.month, now.day),
         entry: now,
-      );
-      await _repository.registerEntry(record);
-    } else if (!existing.hasExit) {
-      // Tem entrada mas não saída → bate saída
-      await _repository.registerExit(existing.id!, DateTime.now());
+      ));
+      return PunchStep.breakStart;
     }
-    // Se já tem entrada e saída, não faz nada (ponto completo)
+
+    final now = DateTime.now();
+
+    switch (existing.nextStep) {
+      case PunchStep.breakStart:
+        await _repository.updateRecord(
+          existing.copyWith(breakStart: now),
+        );
+        return PunchStep.breakEnd;
+
+      case PunchStep.breakEnd:
+        await _repository.updateRecord(
+          existing.copyWith(breakEnd: now),
+        );
+        return PunchStep.exit;
+
+      case PunchStep.exit:
+        await _repository.updateRecord(
+          existing.copyWith(exit: now),
+        );
+        return PunchStep.done;
+
+      case PunchStep.done:
+        return PunchStep.done; // ponto completo, não faz nada
+    }
   }
 
   Future<TimeRecordEntity?> getTodayRecord(String userId) =>

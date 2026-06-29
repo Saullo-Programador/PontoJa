@@ -17,8 +17,11 @@ class EmployeeHomeController extends ChangeNotifier {
   TimeRecordEntity? get todayRecord => _todayRecord;
   String get errorMessage => _errorMessage;
 
-  bool get hasEntry => _todayRecord != null;
-  bool get hasExit => _todayRecord?.hasExit ?? false;
+  bool get hasEntry      => _todayRecord != null;
+  bool get isOnBreak     => _todayRecord?.isOnBreak ?? false;
+  bool get hasExit       => _todayRecord?.hasExit ?? false;
+  bool get isComplete    => _todayRecord?.isComplete ?? false;
+  PunchStep get nextStep => _todayRecord?.nextStep ?? PunchStep.breakStart;
 
   Future<void> loadTodayRecord(String userId) async {
     _status = PointStatus.loading;
@@ -35,19 +38,22 @@ class EmployeeHomeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> registerPoint(String userId) async {
+  /// Avança o ponto para a próxima etapa e retorna qual etapa foi concluída.
+  Future<PunchStep> registerPoint(String userId) async {
     _status = PointStatus.loading;
     notifyListeners();
 
     try {
-      await _registerPointUsecase.execute(userId);
+      final completedStep = await _registerPointUsecase.execute(userId);
       _todayRecord = await _registerPointUsecase.getTodayRecord(userId);
       _status = PointStatus.idle;
+      notifyListeners();
+      return completedStep;
     } catch (e) {
       _errorMessage = 'Erro ao registrar ponto.';
       _status = PointStatus.error;
+      notifyListeners();
+      return PunchStep.done;
     }
-
-    notifyListeners();
   }
 }

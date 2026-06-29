@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:ponto_eletronico/app/router/app_routes.dart';
 import 'package:ponto_eletronico/core/utils/date_utils.dart';
 import 'package:ponto_eletronico/data/datasources/firebase_auth_datasource.dart';
+import 'package:ponto_eletronico/domain/entities/time_record_entity.dart';
 import 'package:ponto_eletronico/features/employee/controller/employee_home_controller.dart';
 import 'package:ponto_eletronico/shared/widgets/theme_toggle_button.dart';
 
@@ -33,35 +34,27 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
-  Future<void> _confirmAndPunch(String uid, bool isEntry) async {
+  Future<void> _confirmAndPunch(String uid, PunchStep step) async {
+    final info = _stepInfo(step);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(
-              isEntry ? Icons.login_rounded : Icons.logout_rounded,
-              color: isEntry ? Colors.green : Colors.orange,
-            ),
+            Icon(info.icon, color: info.color),
             const SizedBox(width: 10),
-            Text(isEntry ? 'Registrar Entrada' : 'Registrar Saída'),
+            Text(info.label),
           ],
         ),
-        content: Text(
-          isEntry
-              ? 'Deseja confirmar o registro de entrada agora?'
-              : 'Deseja confirmar o registro de saída agora?',
-        ),
+        content: Text(info.question),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: isEntry ? Colors.green : Colors.orange,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: info.color),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Confirmar'),
           ),
@@ -69,59 +62,50 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
       ),
     );
 
-    if (confirmed == true && mounted) {
-      context.read<EmployeeHomeController>().registerPoint(uid);
-      if (!mounted) return;
+    if (confirmed != true || !mounted) return;
 
-      // ── Feedback visual após registrar ──────────────────────────────
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          backgroundColor: isEntry ? Colors.green : Colors.orange,
-          duration: const Duration(seconds: 3),
-          content: Row(
-            children: [
-              Icon(
-                isEntry
-                    ? Icons.login_rounded
-                    : Icons.check_circle_outline_rounded,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isEntry ? 'Entrada registrada!' : 'Tchau! 👋',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Text(
-                      isEntry
-                          ? 'Bom trabalho hoje!'
-                          : 'Saída registrada com sucesso.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+    final completedStep =
+        await context.read<EmployeeHomeController>().registerPoint(uid);
+
+    if (!mounted) return;
+    _showFeedback(completedStep);
+  }
+
+  void _showFeedback(PunchStep completed) {
+    final msgs = {
+      PunchStep.breakStart: ('Entrada registrada! 🎉', 'Bom trabalho hoje!', Colors.green),
+      PunchStep.breakEnd:   ('Bom intervalo! ☕',      'Descanse bem.',        Colors.blue),
+      PunchStep.exit:       ('Voltou do intervalo! 💪', 'Continue arrasando!', Colors.purple),
+      PunchStep.done:       ('Até amanhã! 👋',          'Saída registrada.',   Colors.orange),
+    };
+
+    final (title, subtitle, color) = msgs[completed] ??
+        ('Ponto registrado!', '', Colors.green);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: color,
+        duration: const Duration(seconds: 3),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15)),
+            if (subtitle.isNotEmpty)
+              Text(subtitle,
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.85), fontSize: 12)),
+          ],
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -129,13 +113,8 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     final ctrl = context.watch<EmployeeHomeController>();
     final uid = _authDs.currentUser?.uid ?? '';
     final now = DateTime.now();
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Determina estado atual do botão
-    final isEntry = !ctrl.hasEntry;
-    final punchColor = isEntry ? Colors.green : Colors.orange;
-    final punchComplete = ctrl.hasEntry && ctrl.hasExit;
 
     return Scaffold(
       appBar: AppBar(
@@ -155,11 +134,12 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Cabeçalho: data + saudação ─────────────────────────────
+
+              // ── Cabeçalho ───────────────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
+                  color: cs.primaryContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -167,69 +147,66 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.15),
+                        color: cs.primary.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        Icons.calendar_today_outlined,
-                        color: colorScheme.primary,
-                        size: 24,
-                      ),
+                      child: Icon(Icons.calendar_today_outlined,
+                          color: cs.primary, size: 24),
                     ),
                     const SizedBox(width: 14),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          now.toDateDisplay(),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                        Text(
-                          _greeting(),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: colorScheme.onPrimaryContainer.withOpacity(
-                              0.7,
-                            ),
-                          ),
-                        ),
+                        Text(now.toDateDisplay(),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: cs.onPrimaryContainer)),
+                        Text(_greeting(),
+                            style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    cs.onPrimaryContainer.withOpacity(0.7))),
                       ],
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // ── Cards entrada / saída ───────────────────────────────────
-              _PunchStatusRow(ctrl: ctrl, isDark: isDark),
+              // ── Timeline de status ───────────────────────────────────────
+              _TimelineRow(record: ctrl.todayRecord, isDark: isDark),
 
               const Spacer(),
 
-              // ── Botão circular central ─────────────────────────────────
+              // ── Botão central / badge completo ───────────────────────────
               Center(
                 child: ctrl.status == PointStatus.loading
                     ? const SizedBox(
-                        width: 140,
-                        height: 140,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                    : punchComplete
-                    ? _CompleteBadge(isDark: isDark)
-                    : _PunchButton(
-                        isEntry: isEntry,
-                        color: punchColor,
-                        onTap: () => _confirmAndPunch(uid, isEntry),
-                      ),
+                        width: 160,
+                        height: 160,
+                        child: CircularProgressIndicator(strokeWidth: 3))
+                    : ctrl.isComplete
+                        ? _CompleteBadge(isDark: isDark)
+                        : !ctrl.hasEntry
+                            // ── Botão único: ENTRADA ─────────────────────
+                            ? _PunchButton(
+                                step: PunchStep.breakStart,
+                                onTap: () =>
+                                    _confirmAndPunch(uid, PunchStep.breakStart),
+                              )
+                            // ── Dois botões: intervalo + saída ───────────
+                            : _DoubleButtons(
+                                step: ctrl.nextStep,
+                                isOnBreak: ctrl.isOnBreak,
+                                onTap: (s) => _confirmAndPunch(uid, s),
+                              ),
               ),
 
               const Spacer(),
 
-              // ── Erro ───────────────────────────────────────────────────
+              // ── Erro ─────────────────────────────────────────────────────
               if (ctrl.status == PointStatus.error)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -238,11 +215,9 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.red.shade200),
                   ),
-                  child: Text(
-                    ctrl.errorMessage,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text(ctrl.errorMessage,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center),
                 ),
             ],
           ),
@@ -257,20 +232,173 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     if (h < 18) return 'Boa tarde! 👋';
     return 'Boa noite! 👋';
   }
+
+  _StepInfo _stepInfo(PunchStep step) => switch (step) {
+        PunchStep.breakStart => _StepInfo(
+            icon: Icons.login_rounded,
+            color: Colors.green,
+            label: 'Registrar Entrada',
+            question: 'Deseja confirmar o registro de entrada agora?'),
+        PunchStep.breakEnd => _StepInfo(
+            icon: Icons.coffee_rounded,
+            color: Colors.blue,
+            label: 'Iniciar Intervalo',
+            question: 'Deseja iniciar o intervalo agora?'),
+        PunchStep.exit => _StepInfo(
+            icon: Icons.play_circle_outline_rounded,
+            color: Colors.purple,
+            label: 'Voltar do Intervalo',
+            question: 'Deseja registrar o retorno do intervalo?'),
+        PunchStep.done => _StepInfo(
+            icon: Icons.logout_rounded,
+            color: Colors.orange,
+            label: 'Registrar Saída',
+            question: 'Deseja confirmar o registro de saída?'),
+      };
 }
 
-// ── Botão circular ─────────────────────────────────────────────────────────
+// ── Data class auxiliar ────────────────────────────────────────────────────
+
+class _StepInfo {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String question;
+  const _StepInfo({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.question,
+  });
+}
+
+// ── Timeline de status ─────────────────────────────────────────────────────
+
+class _TimelineRow extends StatelessWidget {
+  final TimeRecordEntity? record;
+  final bool isDark;
+
+  const _TimelineRow({this.record, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = [
+      _TimelineStep(
+        icon: Icons.login_rounded,
+        label: 'Entrada',
+        time: record?.entry.toDisplay(),
+        color: Colors.green,
+        done: record != null,
+        isDark: isDark,
+      ),
+      _TimelineStep(
+        icon: Icons.coffee_rounded,
+        label: 'Intervalo',
+        time: record?.breakStart?.toDisplay(),
+        color: Colors.blue,
+        done: record?.hasBreakStart ?? false,
+        isDark: isDark,
+      ),
+      _TimelineStep(
+        icon: Icons.play_circle_outline_rounded,
+        label: 'Retorno',
+        time: record?.breakEnd?.toDisplay(),
+        color: Colors.purple,
+        done: record?.hasBreakEnd ?? false,
+        isDark: isDark,
+      ),
+      _TimelineStep(
+        icon: Icons.logout_rounded,
+        label: 'Saída',
+        time: record?.exit?.toDisplay(),
+        color: Colors.orange,
+        done: record?.hasExit ?? false,
+        isDark: isDark,
+      ),
+    ];
+
+    return Row(
+      children: [
+        for (int i = 0; i < steps.length; i++) ...[
+          Expanded(child: steps[i]),
+          if (i < steps.length - 1)
+            Container(
+              height: 2,
+              width: 12,
+              color: steps[i].done
+                  ? steps[i].color.withOpacity(0.5)
+                  : Theme.of(context).colorScheme.outlineVariant,
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TimelineStep extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? time;
+  final Color color;
+  final bool done;
+  final bool isDark;
+
+  const _TimelineStep({
+    required this.icon,
+    required this.label,
+    required this.time,
+    required this.color,
+    required this.done,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: done
+                ? color.withOpacity(isDark ? 0.2 : 0.1)
+                : cs.surfaceContainerLow,
+            border: Border.all(
+              color: done ? color : cs.outlineVariant,
+              width: done ? 2 : 1,
+            ),
+          ),
+          child: Icon(icon,
+              color: done ? color : cs.onSurfaceVariant, size: 20),
+        ),
+        const SizedBox(height: 6),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: done ? color : cs.onSurfaceVariant)),
+        const SizedBox(height: 2),
+        Text(
+          time ?? '—',
+          style: TextStyle(
+              fontSize: 10,
+              color: done ? cs.onSurface : cs.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Botão único (entrada) ──────────────────────────────────────────────────
 
 class _PunchButton extends StatelessWidget {
-  final bool isEntry;
-  final Color color;
+  final PunchStep step;
   final VoidCallback onTap;
 
-  const _PunchButton({
-    required this.isEntry,
-    required this.color,
-    required this.onTap,
-  });
+  const _PunchButton({required this.step, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -281,42 +409,29 @@ class _PunchButton extends StatelessWidget {
         height: 180,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color,
+          color: Colors.green,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: Colors.green.withOpacity(0.4),
               blurRadius: 30,
               spreadRadius: 4,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Column(
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              isEntry ? Icons.login_rounded : Icons.logout_rounded,
-              color: Colors.white,
-              size: 48,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isEntry ? 'Entrada' : 'Saída',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Toque para registrar',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 11,
-              ),
-            ),
+            Icon(Icons.login_rounded, color: Colors.white, size: 48),
+            SizedBox(height: 8),
+            Text('Entrada',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700)),
+            SizedBox(height: 4),
+            Text('Toque para registrar',
+                style: TextStyle(color: Colors.white70, fontSize: 11)),
           ],
         ),
       ),
@@ -324,105 +439,106 @@ class _PunchButton extends StatelessWidget {
   }
 }
 
-// ── Cards entrada / saída ──────────────────────────────────────────────────
+// ── Dois botões (intervalo + saída) ───────────────────────────────────────
 
-class _PunchStatusRow extends StatelessWidget {
-  final EmployeeHomeController ctrl;
-  final bool isDark;
+class _DoubleButtons extends StatelessWidget {
+  final PunchStep step;
+  final bool isOnBreak;
+  final void Function(PunchStep) onTap;
 
-  const _PunchStatusRow({required this.ctrl, required this.isDark});
+  const _DoubleButtons({
+    required this.step,
+    required this.isOnBreak,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Se está em intervalo: só mostra "Voltar do Intervalo"
+    // Se não está: mostra "Iniciar Intervalo" + "Saída"
+    if (isOnBreak) {
+      return _CircleButton(
+        icon: Icons.play_circle_outline_rounded,
+        label: 'Voltar do\nIntervalo',
+        color: Colors.purple,
+        size: 180,
+        onTap: () => onTap(PunchStep.exit),
+      );
+    }
+
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Expanded(
-          child: _PunchCard(
-            label: 'Entrada',
-            time: ctrl.todayRecord?.entry.toDisplay() ?? '—',
-            done: ctrl.hasEntry,
-            icon: Icons.login_rounded,
-            color: Colors.green,
-            isDark: isDark,
-          ),
+        _CircleButton(
+          icon: Icons.coffee_rounded,
+          label: 'Intervalo',
+          color: Colors.blue,
+          size: 140,
+          onTap: () => onTap(PunchStep.breakEnd),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _PunchCard(
-            label: 'Saída',
-            time: ctrl.todayRecord?.exit?.toDisplay() ?? '—',
-            done: ctrl.hasExit,
-            icon: Icons.logout_rounded,
-            color: Colors.orange,
-            isDark: isDark,
-          ),
+        const SizedBox(width: 24),
+        _CircleButton(
+          icon: Icons.logout_rounded,
+          label: 'Saída',
+          color: Colors.orange,
+          size: 140,
+          onTap: () => onTap(PunchStep.done),
         ),
       ],
     );
   }
 }
 
-class _PunchCard extends StatelessWidget {
-  final String label;
-  final String time;
-  final bool done;
+class _CircleButton extends StatelessWidget {
   final IconData icon;
+  final String label;
   final Color color;
-  final bool isDark;
+  final double size;
+  final VoidCallback onTap;
 
-  const _PunchCard({
-    required this.label,
-    required this.time,
-    required this.done,
+  const _CircleButton({
     required this.icon,
+    required this.label,
     required this.color,
-    required this.isDark,
+    required this.size,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = done
-        ? color
-        : Theme.of(context).colorScheme.outlineVariant;
-
-    final iconColor = done
-        ? color
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: done
-            ? color.withOpacity(isDark ? 0.12 : 0.07)
-            : Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: done ? 2 : 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 26),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: done
-                  ? color
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.4),
+              blurRadius: 24,
+              spreadRadius: 3,
+              offset: const Offset(0, 6),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: size * 0.27),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: size * 0.1,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -448,39 +564,30 @@ class _CompleteBadge extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withOpacity(0.2),
-            blurRadius: 24,
-            spreadRadius: 2,
-          ),
+              color: Colors.green.withOpacity(0.2),
+              blurRadius: 24,
+              spreadRadius: 2),
         ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.check_circle_outline_rounded,
-            color: isDark ? const Color(0xFF81C995) : Colors.green,
-            size: 52,
-          ),
+          Icon(Icons.check_circle_outline_rounded,
+              color: isDark ? const Color(0xFF81C995) : Colors.green,
+              size: 52),
           const SizedBox(height: 8),
-          Text(
-            'Completo!',
-            style: TextStyle(
-              color: isDark ? const Color(0xFF81C995) : Colors.green.shade700,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text('Completo!',
+              style: TextStyle(
+                  color: isDark ? const Color(0xFF81C995) : Colors.green.shade700,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(
-            'Bom trabalho hoje',
-            style: TextStyle(
-              color: isDark
-                  ? const Color(0xFF81C995).withOpacity(0.7)
-                  : Colors.green.shade600,
-              fontSize: 11,
-            ),
-          ),
+          Text('Bom trabalho hoje',
+              style: TextStyle(
+                  color: isDark
+                      ? const Color(0xFF81C995).withOpacity(0.7)
+                      : Colors.green.shade600,
+                  fontSize: 11)),
         ],
       ),
     );
