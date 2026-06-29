@@ -14,7 +14,7 @@ abstract class AppTheme {
   static const darkGradientEnd = Color(0xFF020616);
 
   // Dark
-  static const _primaryDark = Color(0xFF90CAF9); // azul mais claro p/ contraste
+  static const _primaryDark = Color.fromARGB(255, 57, 162, 247); // azul mais claro p/ contraste
   static const _secondaryDark = Color(0xFF64B5F6);
   static const _surfaceDark = Color(0xFF1E1E2E);
   static const _backgroundDark = Color(0xFF12121C);
