@@ -5,7 +5,7 @@
     <application
         android:label="ponto_eletronico"
         android:name="${applicationName}"
-        android:icon="@mipmap/pontoJa">
+        android:icon="@mipmap/pontoja">
         <activity
             android:name=".MainActivity"
             android:exported="true"
