@@ -8,6 +8,7 @@ import 'package:ponto_eletronico/firebase_options.dart';
 import 'package:ponto_eletronico/shared/theme/app_theme.dart';
 import 'package:ponto_eletronico/shared/theme/theme_controller.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,13 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeController>(
         builder: (_, themeCtrl, __) => MaterialApp(
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('pt', 'BR'), Locale('en')],
+          locale: const Locale('pt', 'BR'),
           title: 'Ponto Eletrônico',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
