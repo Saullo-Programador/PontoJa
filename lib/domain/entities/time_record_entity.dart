@@ -52,16 +52,17 @@ class TimeRecordEntity {
   bool get isComplete => exit != null;
 
   bool get canStartBreak =>
-      breaks.length < 3 &&
-      !isOnBreak;
+    breaks.length < 3 &&
+    !isOnBreak &&
+    exit == null;
+
+  bool get canExit =>
+    !isOnBreak &&
+    exit == null;
 
   PunchStep get nextStep {
     if (isOnBreak) {
       return PunchStep.breakEnd;
-    }
-
-    if (breaks.length < 3) {
-      return PunchStep.breakStart;
     }
 
     if (exit == null) {

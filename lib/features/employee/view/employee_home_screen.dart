@@ -74,7 +74,7 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
 
     final completedStep = await context
         .read<EmployeeHomeController>()
-        .registerPoint(uid);
+        .registerPoint(uid, step);
 
     if (!mounted) return;
     _showFeedback(completedStep);

@@ -11,7 +11,7 @@ class RegisterPointUsecase {
     CheckLocationUsecase? checkLocation,
   }) : _checkLocation = checkLocation;
 
-  Future<PunchStep> execute(String userId) async {
+  Future<PunchStep> execute(String userId,  PunchStep action) async {
     if (_checkLocation != null) {
       final result = await _checkLocation.execute();
 
