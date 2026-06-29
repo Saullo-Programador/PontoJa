@@ -16,4 +16,5 @@ abstract class ITimeRecordRepository {
     required int year,
   });
   Future<void> updateRecord(TimeRecordEntity record);
+  Future<void> deleteRecord(TimeRecordEntity record);
 }

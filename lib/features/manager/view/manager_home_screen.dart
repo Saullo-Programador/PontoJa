@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ponto_eletronico/features/manager/view/delete_point_dialog.dart';
 import 'package:ponto_eletronico/shared/widgets/theme_toggle_button.dart';
 import 'package:provider/provider.dart';
 import 'package:ponto_eletronico/app/router/app_routes.dart';
@@ -423,12 +424,23 @@ class _TodayPointsTab extends StatelessWidget {
             'Saída: ${r.exit?.toDisplay() ?? 'pendente'}',
             style: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
-          trailing: IconButton(
-            icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => EditPointDialog(record: r, onSave: ctrl.editPoint),
-            ),
+          trailing: Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => EditPointDialog(record: r, onSave: ctrl.editPoint),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: colorScheme.primary),
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => DeletePointDialog(record: r, onDelete: ctrl.deletePoint),
+                ),
+              ),
+            ],
           ),
         );
       },

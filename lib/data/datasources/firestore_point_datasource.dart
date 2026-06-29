@@ -13,6 +13,8 @@ class FirestorePointDatasource {
 
   Future<void> addRecord(TimeRecordModel record) => _col.add(record.toMap());
 
+  Future<void> deleteRecord(String recordId) => _col.doc(recordId).delete();
+
   Future<void> updateRecord(TimeRecordModel record) =>
       _col.doc(record.id).update(record.toMap());
 

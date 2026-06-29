@@ -5,6 +5,7 @@ import 'package:ponto_eletronico/core/service/file_io/file_save_result.dart';
 import 'package:ponto_eletronico/domain/entities/time_record_entity.dart';
 import 'package:ponto_eletronico/domain/entities/user_entity.dart';
 import 'package:ponto_eletronico/domain/usecases/create_employee_usecase.dart';
+import 'package:ponto_eletronico/domain/usecases/delete_point_usecase.dart';
 import 'package:ponto_eletronico/domain/usecases/edit_point_usecase.dart';
 import 'package:ponto_eletronico/domain/usecases/get_monthly_report_usecase.dart';
 import 'package:ponto_eletronico/data/datasources/firestore_user_datasource.dart';
@@ -14,6 +15,7 @@ enum ManagerStatus { idle, loading, error }
 class ManagerHomeController extends ChangeNotifier {
   final GetMonthlyReportUsecase _reportUsecase;
   final EditPointUsecase _editPointUsecase;
+  final DeletePointUsecase _deletePointUsecase;
   final CreateEmployeeUsecase _createEmployeeUsecase;
   final _excelService = ExcelExportService();
   final _userDs = FirestoreUserDatasource();
@@ -24,6 +26,7 @@ class ManagerHomeController extends ChangeNotifier {
 
   ManagerHomeController(
     this._reportUsecase,
+    this._deletePointUsecase,
     this._editPointUsecase,
     this._createEmployeeUsecase,
   );
@@ -92,6 +95,11 @@ class ManagerHomeController extends ChangeNotifier {
 
   Future<void> editPoint(TimeRecordEntity record) async {
     await _editPointUsecase.execute(record);
+    // Não precisa chamar loadAll() — os streams atualizam sozinhos
+  }
+
+  Future<void> deletePoint(TimeRecordEntity record) async {
+    await _deletePointUsecase.execute(record);
     // Não precisa chamar loadAll() — os streams atualizam sozinhos
   }
 

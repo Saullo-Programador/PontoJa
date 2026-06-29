@@ -48,4 +48,8 @@ class TimeRecordRepositoryImpl implements ITimeRecordRepository {
   @override
   Future<void> updateRecord(TimeRecordEntity record) =>
       _datasource.updateRecord(TimeRecordModel.fromEntity(record));
+
+  @override
+  Future<void> deleteRecord(TimeRecordEntity record) =>
+      _datasource.deleteRecord(record.id!);
 }

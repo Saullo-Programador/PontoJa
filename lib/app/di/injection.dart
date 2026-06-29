@@ -1,4 +1,5 @@
 
+import 'package:ponto_eletronico/domain/usecases/delete_point_usecase.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -43,6 +44,9 @@ List<SingleChildWidget> appProviders = [
   ProxyProvider<TimeRecordRepositoryImpl, EditPointUsecase>(
     update: (_, repo, __) => EditPointUsecase(repo),
   ),
+  ProxyProvider<TimeRecordRepositoryImpl, DeletePointUsecase>(
+    update: (_, repo, __) => DeletePointUsecase(repo),
+  ),
   ProxyProvider<UserRepositoryImpl, CreateEmployeeUsecase>(
     update: (_, repo, __) => CreateEmployeeUsecase(repo),
   ),
@@ -61,17 +65,19 @@ List<SingleChildWidget> appProviders = [
         EmployeeHomeController(RegisterPointUsecase(TimeRecordRepositoryImpl(FirestorePointDatasource()))),
     update: (_, uc, __) => EmployeeHomeController(uc),
   ),
-  ChangeNotifierProxyProvider3<
+  ChangeNotifierProxyProvider4<
       GetMonthlyReportUsecase,
       EditPointUsecase,
+      DeletePointUsecase,
       CreateEmployeeUsecase,
       ManagerHomeController>(
     create: (_) => ManagerHomeController(
       GetMonthlyReportUsecase(TimeRecordRepositoryImpl(FirestorePointDatasource())),
+      DeletePointUsecase(TimeRecordRepositoryImpl(FirestorePointDatasource())),
       EditPointUsecase(TimeRecordRepositoryImpl(FirestorePointDatasource())),
       CreateEmployeeUsecase(UserRepositoryImpl(FirestoreUserDatasource())),
     ),
-    update: (_, report, edit, create, __) =>
-        ManagerHomeController(report, edit, create),
+    update: (_, report, edit, delete, create, __) =>
+        ManagerHomeController(report, delete, edit, create),
   ),
 ];
