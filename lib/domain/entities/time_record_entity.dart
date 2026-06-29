@@ -65,11 +65,8 @@ class TimeRecordEntity {
       return PunchStep.breakEnd;
     }
 
-    if (exit == null) {
-      return PunchStep.exit;
-    }
-
-    return PunchStep.done;
+    if (exit != null) return PunchStep.done;
+    return PunchStep.exit;
   }
 
   Duration? get workedDuration {
