@@ -14,13 +14,15 @@ class TimeRecordRepositoryImpl implements ITimeRecordRepository {
 
   @override
   Future<void> registerExit(String recordId, DateTime exit) =>
-      _datasource.updateRecord(TimeRecordModel(
-        id: recordId,
-        userId: '',
-        date: exit,
-        entry: exit,
-        exit: exit,
-      ));
+      _datasource.updateRecord(
+        TimeRecordModel(
+          id: recordId,
+          userId: '',
+          date: exit,
+          entry: exit,
+          exit: exit,
+        ),
+      );
 
   @override
   Future<TimeRecordEntity?> getTodayRecord(String userId) =>
@@ -31,8 +33,7 @@ class TimeRecordRepositoryImpl implements ITimeRecordRepository {
     String userId, {
     required int month,
     required int year,
-  }) =>
-      _datasource.getMonthlyRecords(userId, month: month, year: year);
+  }) => _datasource.getMonthlyRecords(userId, month: month, year: year);
 
   @override
   Stream<List<TimeRecordEntity>> watchTodayRecords() =>
@@ -42,8 +43,7 @@ class TimeRecordRepositoryImpl implements ITimeRecordRepository {
   Stream<List<TimeRecordEntity>> watchMonthlyRecords({
     required int month,
     required int year,
-  }) =>
-      _datasource.watchMonthlyRecords(month: month, year: year);
+  }) => _datasource.watchMonthlyRecords(month: month, year: year);
 
   @override
   Future<void> updateRecord(TimeRecordEntity record) =>
@@ -52,4 +52,8 @@ class TimeRecordRepositoryImpl implements ITimeRecordRepository {
   @override
   Future<void> deleteRecord(TimeRecordEntity record) =>
       _datasource.deleteRecord(record.id!);
+
+  @override
+  Stream<List<TimeRecordEntity>> watchRecordsByDate(DateTime date) =>
+      _datasource.watchRecordsByDate(date);
 }

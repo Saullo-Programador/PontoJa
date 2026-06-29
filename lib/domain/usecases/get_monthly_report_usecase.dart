@@ -31,4 +31,7 @@ class GetMonthlyReportUsecase {
     required int year,
   }) =>
       _repository.watchMonthlyRecords(month: month, year: year);
+  
+  Stream<List<TimeRecordEntity>> watchByDate(DateTime date) =>
+    _repository.watchRecordsByDate(date);
 }

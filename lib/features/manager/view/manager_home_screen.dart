@@ -442,67 +442,168 @@ class _MonthlyPointsSheet extends StatelessWidget {
 
 // ── Aba: ponto do dia ──────────────────────────────────────────────────────
 
-class _TodayPointsTab extends StatelessWidget {
+class _TodayPointsTab extends StatefulWidget {
   final ManagerHomeController ctrl;
   const _TodayPointsTab({required this.ctrl});
 
   @override
+  State<_TodayPointsTab> createState() => _TodayPointsTabState();
+}
+
+class _TodayPointsTabState extends State<_TodayPointsTab> {
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final ctrl = widget.ctrl;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: ctrl.selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+    );
+
+    if (picked != null) {
+      ctrl.selectDate(picked);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final records = ctrl.todayRecords;
+    final ctrl = widget.ctrl;
+    final records = ctrl.filteredTodayRecords;
+    final isToday = ctrl.selectedDate == null;
 
-    if (records.isEmpty) {
-      return Center(
-        child: Text(
-          'Nenhum registro hoje.',
-          style: TextStyle(color: colorScheme.onSurfaceVariant),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: records.length,
-      separatorBuilder: (_, __) => Divider(color: colorScheme.outlineVariant),
-      itemBuilder: (_, i) {
-        final r = records[i];
-        final emp = ctrl.employees.where((e) => e.uid == r.userId).firstOrNull;
-
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: colorScheme.primaryContainer,
-            foregroundColor: colorScheme.onPrimaryContainer,
-            child: Text(emp?.name[0].toUpperCase() ?? '?'),
-          ),
-          title: Text(emp?.name ?? r.userId),
-          subtitle: Text(
-            'Entrada: ${r.entry.toDisplay()}  '
-            'Saída: ${r.exit?.toDisplay() ?? 'pendente'}',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
+    return Column(
+      children: [
+        // ── Barra de busca + data ───────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
             children: [
-              IconButton(
-                icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) =>
-                      EditPointDialog(record: r, onSave: ctrl.editPoint),
+              Expanded(
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: ctrl.setNameQuery,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar funcionário...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              ctrl.setNameQuery('');
+                            },
+                          )
+                        : null,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.delete_outlined, color: Colors.red),
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) =>
-                      DeletePointDialog(record: r, onDelete: ctrl.deletePoint),
+              const SizedBox(width: 8),
+              ActionChip(
+                avatar: Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: isToday ? colorScheme.primary : colorScheme.onSecondaryContainer,
                 ),
+                label: Text(
+                  isToday ? 'Hoje' : ctrl.selectedDate!.toDateDisplay(),
+                ),
+                backgroundColor: isToday
+                    ? colorScheme.primaryContainer.withValues(alpha: 0.4)
+                    : colorScheme.secondaryContainer,
+                onPressed: () => _pickDate(context),
               ),
+              if (!isToday)
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Voltar para hoje',
+                  onPressed: () => ctrl.selectDate(null),
+                ),
             ],
           ),
-        );
-      },
+        ),
+
+        // ── Lista de registros ──────────────────────────────────────────
+        Expanded(
+          child: records.isEmpty
+              ? Center(
+                  child: Text(
+                    ctrl.nameQuery.isNotEmpty
+                        ? 'Nenhum funcionário encontrado.'
+                        : isToday
+                            ? 'Nenhum registro hoje.'
+                            : 'Nenhum registro nesta data.',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: records.length,
+                  separatorBuilder: (_, __) =>
+                      Divider(color: colorScheme.outlineVariant),
+                  itemBuilder: (_, i) {
+                    final r = records[i];
+                    final emp = ctrl.employees
+                        .where((e) => e.uid == r.userId)
+                        .firstOrNull;
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: colorScheme.primaryContainer,
+                        foregroundColor: colorScheme.onPrimaryContainer,
+                        child: Text(emp?.name[0].toUpperCase() ?? '?'),
+                      ),
+                      title: Text(emp?.name ?? r.userId),
+                      subtitle: Text(
+                        'Entrada: ${r.entry.toDisplay()}  '
+                        'Saída: ${r.exit?.toDisplay() ?? 'pendente'}',
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit_outlined,
+                                color: colorScheme.primary),
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (_) => EditPointDialog(
+                                  record: r, onSave: ctrl.editPoint),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outlined,
+                                color: Colors.red),
+                            onPressed: () => showDialog(
+                              context: context,
+                              builder: (_) => DeletePointDialog(
+                                  record: r, onDelete: ctrl.deletePoint),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

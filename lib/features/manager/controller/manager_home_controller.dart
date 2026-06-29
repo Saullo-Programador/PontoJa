@@ -37,12 +37,60 @@ class ManagerHomeController extends ChangeNotifier {
   List<TimeRecordEntity> _todayRecords = [];
   List<TimeRecordEntity> _monthlyRecords = [];
 
+  DateTime? _selectedDate; // null = hoje
+  String _nameQuery = '';
+
+  DateTime? get selectedDate => _selectedDate;
+  String get nameQuery => _nameQuery;
+
   ManagerStatus get status => _status;
   String get error => _error;
   List<UserEntity> get employees => _employees;
   List<TimeRecordEntity> get todayRecords => _todayRecords;
   List<TimeRecordEntity> get monthlyRecords => _monthlyRecords;
 
+  /// Registros do dia já filtrados pela busca de nome.
+  List<TimeRecordEntity> get filteredTodayRecords {
+    if (_nameQuery.trim().isEmpty) return _todayRecords;
+
+    final query = _nameQuery.trim().toLowerCase();
+    return _todayRecords.where((r) {
+      final emp = _employees.where((e) => e.uid == r.userId).firstOrNull;
+      final name = emp?.name.toLowerCase() ?? '';
+      return name.contains(query);
+    }).toList();
+  }
+
+  void setNameQuery(String query) {
+    _nameQuery = query;
+    notifyListeners();
+  }
+  
+  /// Troca a data exibida na aba "Ponto do dia".
+  /// [date] == null volta para o stream de hoje (tempo real).
+  void selectDate(DateTime? date) {
+    _selectedDate = date;
+    _todaySub?.cancel();
+
+    final stream = date == null
+        ? _reportUsecase.watchTodayAll()
+        : _reportUsecase.watchByDate(date);
+
+    _todaySub = stream.listen(
+      (records) {
+        _todayRecords = records;
+        _status = ManagerStatus.idle;
+        notifyListeners();
+      },
+      onError: (_) {
+        _error = 'Erro ao ouvir registros do dia.';
+        _status = ManagerStatus.error;
+        notifyListeners();
+      },
+    );
+
+    notifyListeners();
+  }
   /// Inicia os streams em tempo real.
   /// Chamado uma vez no initState da tela — os dados se atualizam
   /// automaticamente sempre que um funcionário bate o ponto.

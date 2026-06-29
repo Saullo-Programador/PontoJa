@@ -24,7 +24,10 @@ class FirestorePointDatasource {
     final now = DateTime.now();
     final snap = await _col
         .where('userId', isEqualTo: userId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(now.startOfDay))
+        .where(
+          'date',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(now.startOfDay),
+        )
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(now.endOfDay))
         .limit(1)
         .get();
@@ -58,12 +61,25 @@ class FirestorePointDatasource {
   Stream<List<TimeRecordModel>> watchTodayRecords() {
     final now = DateTime.now();
     return _col
-        .where('date',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(now.startOfDay))
+        .where(
+          'date',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(now.startOfDay),
+        )
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(now.endOfDay))
         .snapshots()
-        .map((snap) =>
-            snap.docs.map(TimeRecordModel.fromFirestore).toList());
+        .map((snap) => snap.docs.map(TimeRecordModel.fromFirestore).toList());
+  }
+
+  /// Emite os registros de uma data específica (qualquer dia, não só hoje).
+  Stream<List<TimeRecordModel>> watchRecordsByDate(DateTime date) {
+    return _col
+        .where(
+          'date',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(date.startOfDay),
+        )
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(date.endOfDay))
+        .snapshots()
+        .map((snap) => snap.docs.map(TimeRecordModel.fromFirestore).toList());
   }
 
   /// Emite os registros do mês sempre que há alguma alteração.
@@ -79,7 +95,6 @@ class FirestorePointDatasource {
         .where('date', isLessThan: Timestamp.fromDate(end))
         .orderBy('date')
         .snapshots()
-        .map((snap) =>
-            snap.docs.map(TimeRecordModel.fromFirestore).toList());
+        .map((snap) => snap.docs.map(TimeRecordModel.fromFirestore).toList());
   }
 }

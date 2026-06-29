@@ -11,6 +11,7 @@ abstract class ITimeRecordRepository {
   });
   // Streams em tempo real
   Stream<List<TimeRecordEntity>> watchTodayRecords();
+  Stream<List<TimeRecordEntity>> watchRecordsByDate(DateTime date); // ⬅️ novo
   Stream<List<TimeRecordEntity>> watchMonthlyRecords({
     required int month,
     required int year,
