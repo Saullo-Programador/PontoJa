@@ -188,7 +188,7 @@ class _EditEmployeeDialogState extends State<EditEmployeeDialog> {
 
               // Role
               DropdownButtonFormField<String>(
-                value: _role,
+                initialValue: _role,
                 decoration: InputDecoration(
                   labelText: 'Perfil',
                   prefixIcon: const Icon(Icons.badge_outlined),
@@ -212,7 +212,7 @@ class _EditEmployeeDialogState extends State<EditEmployeeDialog> {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.orange.shade300),
                     ),

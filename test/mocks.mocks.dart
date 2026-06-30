@@ -201,7 +201,6 @@ class MockIUserRepository extends _i1.Mock implements _i8.IUserRepository {
           )
           as _i5.Future<List<_i3.UserEntity>>);
 
-  @override
   _i5.Future<void> deleteEmployee(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteEmployee, [userId]),
@@ -210,7 +209,6 @@ class MockIUserRepository extends _i1.Mock implements _i8.IUserRepository {
           )
           as _i5.Future<void>);
 
-  @override
   _i5.Future<void> createEmployee({
     required String? name,
     required String? email,

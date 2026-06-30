@@ -6,6 +6,7 @@ void main() {
     test('isManager retorna true quando role é manager', () {
       const user = UserEntity(
         uid: 'u1',
+        username: 'joao',
         name: 'João',
         email: 'joao@empresa.com',
         role: 'manager',
@@ -17,6 +18,7 @@ void main() {
     test('isEmployee retorna true quando role é employee', () {
       const user = UserEntity(
         uid: 'u2',
+        username: 'maria',
         name: 'Maria',
         email: 'maria@empresa.com',
         role: 'employee',

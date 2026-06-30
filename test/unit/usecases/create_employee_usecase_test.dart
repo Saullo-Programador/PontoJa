@@ -26,7 +26,7 @@ void main() {
 
       await usecase.execute(
         name: 'Carlos Silva',
-        email: 'carlos@empresa.com',
+        username: 'carlos.silva',
         password: 'senha123',
       );
 
@@ -52,7 +52,7 @@ void main() {
 
       await usecase.execute(
         name: 'Ana Gerente',
-        email: 'ana@empresa.com',
+        username: 'ana.gerente',
         password: 'senha123',
         role: 'manager',
       );
@@ -60,7 +60,7 @@ void main() {
       verify(
         mockRepo.createEmployee(
           name: 'Ana Gerente',
-          email: 'ana@empresa.com',
+          email: 'ana.gerente@empresa.com',
           password: 'senha123',
           role: 'manager',
         ),

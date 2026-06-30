@@ -128,7 +128,7 @@ class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
 
               // Perfil
               DropdownButtonFormField<String>(
-                value: _role,
+                initialValue: _role,
                 decoration: InputDecoration(
                   labelText: 'Perfil',
                   border: OutlineInputBorder(
