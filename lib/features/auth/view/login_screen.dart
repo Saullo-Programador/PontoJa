@@ -16,17 +16,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  final _emailFocus = FocusNode();
+  final _formKey       = GlobalKey<FormState>();
+  final _userCtrl      = TextEditingController();
+  final _passCtrl      = TextEditingController();
+  final _userFocus     = FocusNode();
   final _passwordFocus = FocusNode();
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
+    _userCtrl.dispose();
     _passCtrl.dispose();
-    _emailFocus.dispose();
+    _userFocus.dispose();
     _passwordFocus.dispose();
     super.dispose();
   }
@@ -35,14 +35,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final ctrl = context.read<LoginController>();
-    await ctrl.login(_emailCtrl.text.trim(), _passCtrl.text);
+    await ctrl.login(_userCtrl.text.trim(), _passCtrl.text);
 
     if (!mounted) return;
 
     if (ctrl.status == LoginStatus.success) {
-      final route = ctrl.role == 'manager'
-          ? AppRoutes.manager
-          : AppRoutes.employee;
+      final route = ctrl.role == 'manager' ? AppRoutes.manager : AppRoutes.employee;
       Navigator.pushReplacementNamed(context, route);
     } else if (ctrl.status == LoginStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -51,7 +49,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget _buildForm() {
+  Widget _buildForm({bool isWeb = false}) {
+
     return Consumer<LoginController>(
       builder: (_, ctrl, __) => Form(
         key: _formKey,
@@ -59,40 +58,47 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Entrar',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600),
+            Text(
+              isWeb ? 'Acesso Gerencial' : 'Olá! 👋',
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Acesse o sistema de ponto eletrônico',
-              style: TextStyle(color: Colors.grey),
+            const SizedBox(height: 6),
+            Text(
+              isWeb
+                  ? 'Entre com seu e-mail e senha'
+                  : 'Entre com seu usuário e senha',
+              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
+
+            // Campo usuário (mobile) ou e-mail (web)
             CustomInput(
-              controller: _emailCtrl,
-              hintText: 'E-mail',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              validator: Validators.email,
-              focusNode: _emailFocus,
-              onSubmitted: (_) {
-                FocusScope.of(context).requestFocus(_passwordFocus);
-              },
+              controller: _userCtrl,
+              hintText: isWeb ? 'E-mail' : 'Usuário',
+              prefixIcon: isWeb
+                  ? Icons.email_outlined
+                  : Icons.alternate_email_rounded,
+              keyboardType: isWeb
+                  ? TextInputType.emailAddress
+                  : TextInputType.text,
+              focusNode: _userFocus,
+              validator: isWeb ? Validators.email : Validators.usernameOrEmail,
+              onSubmitted: (_) =>
+                  FocusScope.of(context).requestFocus(_passwordFocus),
             ),
             const SizedBox(height: 16),
+
             CustomInput(
               controller: _passCtrl,
               hintText: 'Senha',
               prefixIcon: Icons.lock_outline,
               isPassword: true,
-              validator: Validators.password,
               focusNode: _passwordFocus,
-              onSubmitted: (_) {
-                _submit();
-              },
+              validator: Validators.password,
+              onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 24),
+
             CustomButton(
               text: 'Entrar',
               isLoading: ctrl.status == LoginStatus.loading,
@@ -107,7 +113,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ResponsiveLayout(
+      // ── Mobile: logo + form com campo "Usuário" ───────────────────────
       mobile: Scaffold(
         body: SafeArea(
           child: Center(
@@ -117,51 +125,45 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Image(
                     image: isDark
-                        ? AssetImage('assets/images/logo_app_dark.png')
-                        : AssetImage('assets/images/logo_app.png'),
+                        ? const AssetImage('assets/images/logo_app_dark.png')
+                        : const AssetImage('assets/images/logo_app.png'),
                     height: 200,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 32),
-                  _buildForm(),
+                  _buildForm(isWeb: false),
                 ],
               ),
             ),
           ),
         ),
       ),
+      // ── Desktop/Web: banner + form com campo "E-mail" ─────────────────
       desktop: Scaffold(
         body: Row(
           children: [
-            // Painel esquerdo – banner
             Expanded(
               child: Container(
                 decoration: AppTheme.background(context),
                 child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image(
-                        image: Theme.of(context).brightness == Brightness.dark
-                            ? AssetImage('assets/images/logo_web_dark.png')
-                            : AssetImage('assets/images/logo_Web.png'),
-                        width: double.infinity,
-                        fit: BoxFit.contain,
-                      ),
-                    ],
+                  child: Image(
+                    image: isDark
+                        ? const AssetImage('assets/images/logo_web_dark.png')
+                        : const AssetImage('assets/images/logo_Web.png'),
+                    width: double.infinity,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
             ),
-            // Painel direito – formulário
             Container(
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Colors.black.withOpacity(0.15),
                     blurRadius: 20,
                     spreadRadius: 2,
-                    offset: const Offset(-5, 0), // sombra para a esquerda
+                    offset: const Offset(-5, 0),
                   ),
                 ],
               ),
@@ -170,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Center(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(40),
-                    child: _buildForm(),
+                    child: _buildForm(isWeb: true),
                   ),
                 ),
               ),

@@ -18,6 +18,15 @@ class FirestoreUserDatasource {
     return doc['role'] as String;
   }
 
+  Future<void> updateUser(UserModel user) =>
+      _col.doc(user.uid).update({
+        'name':     user.name,
+        'username': user.username,
+        'role':     user.role,
+      });
+
+  Future<void> deleteUser(String uid) => _col.doc(uid).delete();
+
   Future<List<UserModel>> getAllEmployees() async {
     final snap = await _col.where('role', isEqualTo: 'employee').get();
     return snap.docs.map(UserModel.fromFirestore).toList();

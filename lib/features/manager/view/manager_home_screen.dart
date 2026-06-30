@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ponto_eletronico/features/manager/view/delete_point_dialog.dart';
+import 'package:ponto_eletronico/features/manager/view/edit_employee_dialog.dart';
 import 'package:ponto_eletronico/shared/widgets/theme_toggle_button.dart';
 import 'package:provider/provider.dart';
 import 'package:ponto_eletronico/app/router/app_routes.dart';
@@ -52,16 +53,17 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
     showDialog(
       context: context,
       builder: (_) => CreateEmployeeDialog(
-        onSave: (name, email, pass, role) =>
+        onSave: (name, username, pass, role) =>
             context.read<ManagerHomeController>().createEmployee(
               name: name,
-              email: email,
+              username: username,
               password: pass,
               role: role,
             ),
       ),
     );
   }
+  
 
   Future<void> _exportExcel() async {
     final ctrl = context.read<ManagerHomeController>();
@@ -211,13 +213,13 @@ class _ManagerHomeScreenState extends State<ManagerHomeScreen>
 class _EmployeeListTab extends StatelessWidget {
   final ManagerHomeController ctrl;
   const _EmployeeListTab({required this.ctrl});
-
+ 
   @override
   Widget build(BuildContext context) {
     if (ctrl.employees.isEmpty) {
       return const Center(child: Text('Nenhum funcionário cadastrado.'));
     }
-
+ 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: ctrl.employees.length,
@@ -225,13 +227,10 @@ class _EmployeeListTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final emp = ctrl.employees[i];
         final todayRecord = ctrl.getTodayRecordFor(emp.uid);
-
+ 
         return Card(
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
+            contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
             leading: CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
@@ -241,12 +240,48 @@ class _EmployeeListTab extends StatelessWidget {
               emp.name,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            subtitle: Text(emp.email),
-            trailing: _PontoBadge(record: todayRecord),
+            subtitle: Text(
+              emp.roleLabel,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _PontoBadge(record: todayRecord),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
+                  tooltip: 'Editar funcionário',
+                  onPressed: () => _showEditEmployee(context, emp, ctrl),
+                ),
+              ],
+            ),
             onTap: () => _showMonthlyPoints(context, emp, ctrl),
           ),
         );
       },
+    );
+  }
+ 
+  void _showEditEmployee(
+    BuildContext context,
+    UserEntity emp,
+    ManagerHomeController ctrl,
+  ) {
+    showDialog(
+      context: context,
+      builder: (_) => EditEmployeeDialog(
+        employee: emp,
+        onSave:   ctrl.updateEmployee,
+        onDelete: ctrl.deleteEmployee,
+      ),
     );
   }
 

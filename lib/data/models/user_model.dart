@@ -6,30 +6,38 @@ class UserModel extends UserEntity {
     required super.uid,
     required super.name,
     required super.email,
+    required super.username,
     required super.role,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final d = doc.data() as Map<String, dynamic>;
+    final email = d['email'] as String;
+    // Compatibilidade: se username não existe ainda, deriva do email
+    final username = d['username'] as String? ??
+        email.replaceAll('@ponto.app', '');
     return UserModel(
-      uid: doc.id,
-      name: data['name'] as String,
-      email: data['email'] as String,
-      role: data['role'] as String,
+      uid:      doc.id,
+      name:     d['name']     as String,
+      email:    email,
+      username: username,
+      role:     d['role']     as String,
     );
   }
 
-  factory UserModel.fromEntity(UserEntity entity) => UserModel(
-        uid: entity.uid,
-        name: entity.name,
-        email: entity.email,
-        role: entity.role,
+  factory UserModel.fromEntity(UserEntity e) => UserModel(
+        uid:      e.uid,
+        name:     e.name,
+        email:    e.email,
+        username: e.username,
+        role:     e.role,
       );
 
   Map<String, dynamic> toMap() => {
-        'uid': uid,
-        'name': name,
-        'email': email,
-        'role': role,
+        'uid':      uid,
+        'name':     name,
+        'email':    email,
+        'username': username,
+        'role':     role,
       };
 }

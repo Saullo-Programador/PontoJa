@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:ponto_eletronico/core/utils/validators.dart';
+import 'package:ponto_eletronico/domain/entities/user_entity.dart';
 import 'package:ponto_eletronico/shared/widgets/custom_input.dart';
 
 class CreateEmployeeDialog extends StatefulWidget {
   final Future<void> Function(
-          String name, String email, String password, String role)
-      onSave;
+      String name, String username, String password, String role) onSave;
 
   const CreateEmployeeDialog({super.key, required this.onSave});
 
@@ -14,17 +14,31 @@ class CreateEmployeeDialog extends StatefulWidget {
 }
 
 class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
-  final _formKey = GlobalKey<FormState>();
+  final _formKey  = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
+  final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  String _role = 'employee';
-  bool _saving = false;
+  String _role    = 'employee';
+  bool _saving    = false;
+  String _previewEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _userCtrl.addListener(_updatePreview);
+  }
+
+  void _updatePreview() {
+    final u = _userCtrl.text.trim().toLowerCase();
+    setState(() {
+      _previewEmail = u.isEmpty ? '' : UserEntity.usernameToEmail(u);
+    });
+  }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _emailCtrl.dispose();
+    _userCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
@@ -32,11 +46,10 @@ class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-
     try {
       await widget.onSave(
         _nameCtrl.text.trim(),
-        _emailCtrl.text.trim(),
+        _userCtrl.text.trim().toLowerCase(),
         _passCtrl.text,
         _role,
       );
@@ -44,10 +57,7 @@ class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao criar: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Erro ao criar: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -57,52 +67,81 @@ class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return AlertDialog(
       title: const Text('Novo usuário'),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CustomInput(
-              controller: _nameCtrl,
-              hintText: 'Nome completo',
-              prefixIcon: Icons.person_outline,
-              validator: (v) => Validators.required(v, 'Nome'),
-            ),
-            const SizedBox(height: 12),
-            CustomInput(
-              controller: _emailCtrl,
-              hintText: 'E-mail',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              validator: Validators.email,
-            ),
-            const SizedBox(height: 12),
-            CustomInput(
-              controller: _passCtrl,
-              hintText: 'Senha (mín. 6 caracteres)',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              validator: Validators.password,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _role,
-              decoration: InputDecoration(
-                labelText: 'Perfil',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Nome completo
+              CustomInput(
+                controller: _nameCtrl,
+                hintText: 'Nome completo',
+                prefixIcon: Icons.person_outline,
+                validator: (v) => Validators.required(v, 'Nome'),
               ),
-              items: const [
-                DropdownMenuItem(
-                    value: 'employee', child: Text('Funcionário')),
-                DropdownMenuItem(value: 'manager', child: Text('Gerente')),
-              ],
-              onChanged: (v) => setState(() => _role = v ?? 'employee'),
-            ),
-          ],
+              const SizedBox(height: 12),
+
+              // Username
+              CustomInput(
+                controller: _userCtrl,
+                hintText: 'Usuário (ex: joao.silva)',
+                prefixIcon: Icons.alternate_email_rounded,
+                keyboardType: TextInputType.text,
+                validator: Validators.username,
+              ),
+
+              // Preview do login
+              if (_previewEmail.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 13, color: cs.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Login: $_previewEmail',
+                          style: TextStyle(
+                              fontSize: 11, color: cs.onSurfaceVariant),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+
+              // Senha
+              CustomInput(
+                controller: _passCtrl,
+                hintText: 'Senha (mín. 6 caracteres)',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                validator: Validators.password,
+              ),
+              const SizedBox(height: 12),
+
+              // Perfil
+              DropdownButtonFormField<String>(
+                value: _role,
+                decoration: InputDecoration(
+                  labelText: 'Perfil',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'employee', child: Text('Funcionário')),
+                  DropdownMenuItem(value: 'manager',  child: Text('Gerente')),
+                ],
+                onChanged: (v) => setState(() => _role = v ?? 'employee'),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -115,8 +154,7 @@ class _CreateEmployeeDialogState extends State<CreateEmployeeDialog> {
           child: _saving
               ? const SizedBox.square(
                   dimension: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
               : const Text('Criar'),
         ),

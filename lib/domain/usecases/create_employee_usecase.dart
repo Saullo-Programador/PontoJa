@@ -7,14 +7,14 @@ class CreateEmployeeUsecase {
 
   Future<void> execute({
     required String name,
-    required String email,
+    required String username,
     required String password,
-    String role = 'employee'
+    String role = 'employee',
   }) =>
-      _repository.createEmployee(
-        name: name,
-        email: email,
+      _repository.createUser(
+        name:     name,
+        username: username,
         password: password,
-        role: role
+        role:     role,
       );
 }

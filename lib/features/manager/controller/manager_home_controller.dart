@@ -5,18 +5,22 @@ import 'package:ponto_eletronico/core/service/file_io/file_save_result.dart';
 import 'package:ponto_eletronico/domain/entities/time_record_entity.dart';
 import 'package:ponto_eletronico/domain/entities/user_entity.dart';
 import 'package:ponto_eletronico/domain/usecases/create_employee_usecase.dart';
+import 'package:ponto_eletronico/domain/usecases/delete_employee_usecase.dart';
 import 'package:ponto_eletronico/domain/usecases/delete_point_usecase.dart';
 import 'package:ponto_eletronico/domain/usecases/edit_point_usecase.dart';
 import 'package:ponto_eletronico/domain/usecases/get_monthly_report_usecase.dart';
 import 'package:ponto_eletronico/data/datasources/firestore_user_datasource.dart';
+import 'package:ponto_eletronico/domain/usecases/update_employee_usecase.dart';
 
 enum ManagerStatus { idle, loading, error }
 
 class ManagerHomeController extends ChangeNotifier {
   final GetMonthlyReportUsecase _reportUsecase;
   final EditPointUsecase _editPointUsecase;
+  final UpdateEmployeeUsecase   _updateEmployeeUsecase;
   final DeletePointUsecase _deletePointUsecase;
   final CreateEmployeeUsecase _createEmployeeUsecase;
+  final DeleteEmployeeUsecase   _deleteEmployeeUsecase;
   final _excelService = ExcelExportService();
   final _userDs = FirestoreUserDatasource();
 
@@ -27,7 +31,9 @@ class ManagerHomeController extends ChangeNotifier {
   ManagerHomeController(
     this._reportUsecase,
     this._deletePointUsecase,
+    this._deleteEmployeeUsecase,
     this._editPointUsecase,
+    this._updateEmployeeUsecase,
     this._createEmployeeUsecase,
   );
 
@@ -153,17 +159,17 @@ class ManagerHomeController extends ChangeNotifier {
 
   Future<void> createEmployee({
     required String name,
-    required String email,
+    required String username,
     required String password,
     String role = 'employee',
   }) async {
     _status = ManagerStatus.loading;
     notifyListeners();
-
+ 
     try {
       await _createEmployeeUsecase.execute(
         name: name,
-        email: email,
+        username: username,
         password: password,
         role: role,
       );
@@ -174,7 +180,35 @@ class ManagerHomeController extends ChangeNotifier {
       _error = 'Erro ao criar usuário.';
       _status = ManagerStatus.error;
     }
+ 
+    notifyListeners();
+  }
 
+  Future<void> updateEmployee(UserEntity user) async {
+    _status = ManagerStatus.loading;
+    notifyListeners();
+    try {
+      await _updateEmployeeUsecase.execute(user);
+      _employees = await _userDs.getAllEmployees();
+      _status = ManagerStatus.idle;
+    } catch (e) {
+      _error = 'Erro ao atualizar funcionário.';
+      _status = ManagerStatus.error;
+    }
+    notifyListeners();
+  }
+ 
+  Future<void> deleteEmployee(String uid) async {
+    _status = ManagerStatus.loading;
+    notifyListeners();
+    try {
+      await _deleteEmployeeUsecase.execute(uid);
+      _employees = await _userDs.getAllEmployees();
+      _status = ManagerStatus.idle;
+    } catch (e) {
+      _error = 'Erro ao remover funcionário.';
+      _status = ManagerStatus.error;
+    }
     notifyListeners();
   }
 
