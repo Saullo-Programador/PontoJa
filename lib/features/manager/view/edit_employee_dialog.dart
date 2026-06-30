@@ -150,7 +150,7 @@ class _EditEmployeeDialogState extends State<EditEmployeeDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Editar funcionário',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 Text(
                   '@${widget.employee.username}',
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
@@ -160,7 +160,9 @@ class _EditEmployeeDialogState extends State<EditEmployeeDialog> {
           ),
         ],
       ),
-      content: Form(
+      content: SizedBox(
+        width: 400,
+        child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
@@ -235,6 +237,7 @@ class _EditEmployeeDialogState extends State<EditEmployeeDialog> {
             ],
           ),
         ),
+      ),
       ),
       actions: [
         // Botão deletar — vermelho, à esquerda
