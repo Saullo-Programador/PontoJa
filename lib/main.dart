@@ -10,6 +10,11 @@ import 'package:ponto_eletronico/shared/theme/theme_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+/// Chave global do Navigator — permite navegar de qualquer lugar
+/// (inclusive de dentro do listener de auth) sem depender de um
+/// BuildContext específico de uma rota.
+final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -18,8 +23,45 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Rotas que podem ser acessadas sem sessão.
+  static const _publicRoutes = {AppRoutes.splash, AppRoutes.login};
+
+  bool _firstEventSkipped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Escuta o estado de auth, mas ignora o primeiro evento emitido —
+    // ele só representa o estado inicial restaurado do disco, que é
+    // tratado pela própria SplashScreen. Reagir a ele aqui também
+    // causaria a corrida de navegação observada no reload da web.
+    FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
+  }
+
+  void _onAuthChanged(User? user) {
+    if (!_firstEventSkipped) {
+      _firstEventSkipped = true;
+      return;
+    }
+
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+
+    final currentRoute = ModalRoute.of(nav.context)?.settings.name;
+    final isPublic = _publicRoutes.contains(currentRoute);
+
+    if (user == null && !isPublic) {
+      nav.pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +72,7 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeController>(
         builder: (_, themeCtrl, __) => MaterialApp(
+          navigatorKey: navigatorKey,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -44,53 +87,8 @@ class MyApp extends StatelessWidget {
           themeMode: themeCtrl.themeMode,
           initialRoute: AppRoutes.splash,
           routes: appRoutes,
-          builder: (context, child) => _AuthGuard(child: child!),
         ),
       ),
-    );
-  }
-}
-
-/// Ouve o stream de autenticação do Firebase.
-/// Se o usuário sair (ou o token expirar), joga para /login de qualquer tela.
-class _AuthGuard extends StatefulWidget {
-  final Widget child;
-  const _AuthGuard({required this.child});
-
-  @override
-  State<_AuthGuard> createState() => _AuthGuardState();
-}
-
-class _AuthGuardState extends State<_AuthGuard> {
-  // Rotas que podem ser acessadas sem sessão (não redireciona nelas)
-  static const _publicRoutes = {AppRoutes.splash, AppRoutes.login};
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        // Ainda inicializando → não faz nada
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return widget.child;
-        }
-
-        final user = snapshot.data;
-        final currentRoute = ModalRoute.of(context)?.settings.name;
-        final isPublic = _publicRoutes.contains(currentRoute);
-
-        // Sessão encerrada fora de rota pública → vai para login
-        if (user == null && !isPublic) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(
-              context,
-              rootNavigator: true,
-            ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
-          });
-        }
-
-        return widget.child;
-      },
     );
   }
 }

@@ -30,18 +30,15 @@ class _SplashScreenState extends State<SplashScreen> {
     final hasUsers = await _hasAnyUser();
     if (!hasUsers) {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
+      // pushAndRemoveUntil limpa TODA a pilha antes de empilhar a nova
+      // rota — evita rota "fantasma" sobrando no reload da web.
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const FirstSetupScreen()),
+        (route) => false,
       );
       return;
     }
 
-    // ── 2. Aguarda o Firebase Auth restaurar a sessão persistida ─────────
-    // authStateReady usa authStateChanges().first, que espera o SDK
-    // terminar de ler o token salvo localmente antes de retornar.
-    // Isso evita o race condition de currentUser retornar null
-    // enquanto o SDK ainda inicializa.
     final user = await _auth.authStateReady;
 
     if (!mounted) return;
@@ -78,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _go(String route) {
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, route);
+    Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => false);
   }
 
   @override
@@ -89,7 +86,6 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Container(
         decoration: AppTheme.background(context),
         child: Stack(
-        
           fit: StackFit.expand,
           children: [
             Image(
